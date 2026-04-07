@@ -1,3 +1,4 @@
+import { EslConnection, EslEvent, EslServer, Srf, SrfDialog, SrfRequest, SrfResponse } from "./types";
 import esl from 'drachtio-modesl';
 import assert from 'assert';
 import MediaServer from './mediaserver';
@@ -30,7 +31,7 @@ namespace Mrf {
 }
 
 class Mrf extends EventEmitter {
-  private _srf: any;
+  private _srf: InstanceType<typeof import('drachtio-srf')>;
   public debugDir?: string;
   public debugSendonly?: boolean;
   public localAddresses: string[];
@@ -38,7 +39,7 @@ class Mrf extends EventEmitter {
 
   public static utils = { parseBodyText };
 
-  constructor(srf: any, opts?: Mrf.CreateOptions) {
+  constructor(srf: InstanceType<typeof import('drachtio-srf')>, opts?: Mrf.CreateOptions) {
     super();
 
     opts = opts || {};

@@ -1,3 +1,4 @@
+import { EslConnection, EslEvent, EslServer, Srf, SrfDialog, SrfRequest, SrfResponse } from "./types";
 import esl from 'drachtio-modesl';
 import assert from 'assert';
 import { EventEmitter } from 'events';
@@ -54,6 +55,32 @@ namespace MediaServer {
   export type ConnectCallerCallback = (err: Error | null, result?: { endpoint?: Endpoint; dialog?: any }) => void;
 }
 
+namespace MediaServer {
+  export interface Events {
+
+    'connect': () => void;
+    'ready': () => void;
+    'error': (err: Error) => void;
+    'end': () => void;
+    'channel::open': (args: { uuid: string; countOfConnections: number; countOfChannels: number }) => void;
+    'channel::close': (args: { uuid: string | undefined; countOfConnections: number; countOfChannels: number }) => void;
+
+  }
+}
+
+declare interface MediaServer {
+  on<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+  on(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  once<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  off<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+  off(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  emit<U extends keyof MediaServer.Events>(event: U, ...args: Parameters<MediaServer.Events[U]>): boolean;
+  emit(event: string | symbol, ...args: any[]): boolean;
+}
 namespace MediaServer {
   export interface Events {
 

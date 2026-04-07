@@ -1,3 +1,4 @@
+export { Srf, SrfDialog, SrfRequest, SrfResponse };
 import Srf, { SrfDialog, SrfRequest, SrfResponse } from 'drachtio-srf';
 
 export interface EslEvent {
