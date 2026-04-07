@@ -1,6 +1,7 @@
-const argv = require('minimist')(process.argv.slice(2));
-const Srf = require('drachtio-srf');
-const Mrf = require('../..');
+import minimist from 'minimist';
+import Srf from 'drachtio-srf';
+import Mrf from '../..';
+const argv = minimist(process.argv.slice(2));
 
 const optsDrachtio = {
   host: argv['drachtio-address'] || '127.0.0.1',
@@ -26,14 +27,14 @@ mrf.connect(optsFreeswitch)
     console.log('successfully connected to mediaserver');
     return srf.locals.ms = mediaserver;
   })
-  .catch ((err) => {
+  .catch ((err: any) => {
     console.error(`error connecting to mediaserver: ${err}`);
   });
-srf.invite((req, res) => {
-  const ms = req.app.locals.ms ;
-  let ep;
+srf.invite((req: any, res: any) => {
+  const ms = req.app.locals.ms;
+  let ep: any;
   ms.connectCaller(req, res)
-    .then(({endpoint, dialog}) => {
+    .then(({endpoint, dialog}: any) => {
       console.log('successfully connected call');
       dialog.on('destroy', () => { endpoint.destroy(); });
       ep = endpoint ;
@@ -42,14 +43,14 @@ srf.invite((req, res) => {
     .then(() => {
       return ep.recordSession('$${base_dir}/recordings/name_and_reason.wav') ;
     })
-    .then((evt) => {
+    .then((evt: any) => {
       return ep.play(['silence_stream://1000', 'ivr/8000/ivr-please_state_your_name_and_reason_for_calling.wav']);
     })
-    .then((res) => {
-      console.log(`finished playing: ${JSON.stringify(res$)}`);
+    .then((res: any) => {
+      console.log(`finished playing: ${JSON.stringify(res)}`);
       return ;
     })
-    .catch ((err) => {
+    .catch ((err: any) => {
       console.log(`error connecting call to media server: ${err}`);
     });
 }) ;

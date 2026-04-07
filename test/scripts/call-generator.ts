@@ -1,8 +1,8 @@
 import Srf from 'drachtio-srf';
-import Mrf = require('../..');
+import Mrf from '../..';
 import assert from 'assert';
 
-export = function(opts: any) {
+export default function(opts: any) {
   const srf: any = new Srf();
   srf.connect(opts.drachtio);
 

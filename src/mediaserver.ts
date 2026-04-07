@@ -33,6 +33,7 @@ namespace MediaServer {
       vmute?: boolean;
       [key: string]: boolean | undefined;
     };
+    maxMembers?: number;
   }
 
   export interface EndpointOptions {

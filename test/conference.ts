@@ -1,19 +1,20 @@
-const test = require('tape') ;
-const Srf = require('drachtio-srf') ;
-const Mrf = require('..') ;
-const config = require('config') ;
-const clearRequire = require('clear-module');
-const MediaServer = require('../lib/mediaserver');
-const Conference = require('../lib/conference');
-const Endpoint = require('../lib/endpoint');
+import callGenerator from './scripts/call-generator';
+import test from 'tape';
+import Srf from 'drachtio-srf';
+import Mrf from '..';
+import config from 'config';
+import clearRequire from 'clear-module';
+import MediaServer from '../lib/mediaserver';
+import Conference from '../lib/conference';
+import Endpoint from '../lib/endpoint';
 const CONF_NAME = 'test';
 const CONF_NAME2 = 'test2';
 const CONF_RECORD_FILE = 'conf-test-recording.wav';
 
 // connect the 2 apps to their drachtio servers
-const connect = async(agents) => {
-  return Promise.all(agents.map((agent) => new Promise((resolve, reject) => {
-    agent.once('connect', (err) => {
+const connect = async (agents: any[]) => {
+  return Promise.all(agents.map((agent: any) => new Promise<void>((resolve: any, reject: any) => {
+    agent.once('connect', (err: any) => {
       if (err) reject(err);
       else resolve();  
     });
@@ -21,19 +22,19 @@ const connect = async(agents) => {
 };
 
 // disconnect the 2 apps
-function disconnect(agents) {
-  agents.forEach((app) => {app.disconnect();}) ;
+function disconnect(agents: any[]) {
+  agents.forEach((app: any) => {app.disconnect();}) ;
   clearRequire('./../app');
 }
 
-test('MediaServer#createConference without specifying a name', (t) => {
+test('MediaServer#createConference without specifying a name', (t: any) => {
   t.timeoutAfter(5000);
 
   const srf = new Srf();
   srf.connect(config.get('drachtio-uac')) ;
   const mrf = new Mrf(srf) ;
 
-  let mediaserver ;
+  let mediaserver: any ;
 
   return connect([srf])
     .then(() => {
@@ -54,19 +55,19 @@ test('MediaServer#createConference without specifying a name', (t) => {
       disconnect([srf]);
       return;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 }) ;
 
-test('MediaServer#createConference using Promises', (t) => {
+test('MediaServer#createConference using Promises', (t: any) => {
   t.timeoutAfter(5000);
 
   const srf = new Srf();
   srf.connect(config.get('drachtio-uac')) ;
   const mrf = new Mrf(srf) ;
 
-  let mediaserver ;
+  let mediaserver: any ;
 
   return connect([srf])
     .then(() => {
@@ -86,19 +87,19 @@ test('MediaServer#createConference using Promises', (t) => {
       disconnect([srf]);
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 }) ;
 
-test('MediaServer#createConference using Callback', (t) => {
+test('MediaServer#createConference using Callback', (t: any) => {
   t.timeoutAfter(5000);
 
   const srf = new Srf();
   srf.connect(config.get('drachtio-uac')) ;
   const mrf = new Mrf(srf) ;
 
-  let mediaserver ;
+  let mediaserver: any ;
 
   return connect([srf])
     .then(() => {
@@ -118,18 +119,19 @@ test('MediaServer#createConference using Callback', (t) => {
       disconnect([srf]);
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 }) ;
 
-test('Connect incoming call into a conference', (t) => {
+test('Connect incoming call into a conference', (t: any) => {
   t.timeoutAfter(25000);
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let dlg, ms, ep, conf, conf2 ;
+  let dlg: any, ms: any, ep: any, conf: any, conf2: any ;
 
   srf.connect(config.get('drachtio-sut')) ;
 
@@ -139,19 +141,19 @@ test('Connect incoming call into a conference', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
-  function handler(req, res) {
-    let conf;
+  function handler(req: any, res: any) {
+    let conf: any;
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
         t.ok(mediaserver instanceof MediaServer, 'contacted mediaserver');
         ms = mediaserver ;
         return mediaserver.connectCaller(req, res);
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         ep = endpoint ;
         dlg = dialog ;
         t.ok(ep instanceof Endpoint, 'connected incoming call to mediaserver');
@@ -177,7 +179,7 @@ test('Connect incoming call into a conference', (t) => {
         t.pass('started recording');
         return ep.join(conf);
       })
-      .then(({memberId, confUuid}) => {
+      .then(({memberId, confUuid}: any) => {
         t.ok(typeof memberId === 'number', `connected endpoint to conference with memberId ${memberId}`);
         return conf.getSize() ;
       })
@@ -189,7 +191,7 @@ test('Connect incoming call into a conference', (t) => {
         t.pass('removed endpoint from conference');
         return ep.join(conf) ;
       })
-      .then(({memberId, confUuid}) => {
+      .then(({memberId, confUuid}: any) => {
         t.ok(typeof memberId === 'number', `added endpoint back to conference with memberId ${memberId}`);
         return conf.agc('on');
       })
@@ -213,11 +215,11 @@ test('Connect incoming call into a conference', (t) => {
         t.pass('played file to member');
         return conf.pauseRecording(CONF_RECORD_FILE) ;
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.pass('paused recording');
         return conf.resumeRecording(CONF_RECORD_FILE);
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.pass('resumed recording');
         return ep.confDeaf();
       })
@@ -269,7 +271,7 @@ test('Connect incoming call into a conference', (t) => {
         t.pass('stopped recording');
         return ep.confHup();
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.pass('endpoint huped');
         conf2.destroy() ;
         return conf.destroy() ;
@@ -285,7 +287,7 @@ test('Connect incoming call into a conference', (t) => {
         t.end();
         return;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(`error ${err}`);
         t.fail(err);
         ep.destroy() ;

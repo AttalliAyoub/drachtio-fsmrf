@@ -1,16 +1,17 @@
-const test = require('tape') ;
-const Srf = require('drachtio-srf') ;
-const Mrf = require('..') ;
-const config = require('config') ;
-const clearRequire = require('clear-module');
-const Endpoint = require('../lib/endpoint');
+import callGenerator from './scripts/call-generator';
+import test from 'tape';
+import Srf from 'drachtio-srf';
+import Mrf from '..';
+import config from 'config';
+import clearRequire from 'clear-module';
+import Endpoint from '../lib/endpoint';
 const EP_FILE = '/tmp/endpoint_record.wav';
 const EP_FILE2 = '/tmp/endpoint_record2.wav';
 
 // connect the 2 apps to their drachtio servers
-const connect = async(agents) => {
-  return Promise.all(agents.map((agent) => new Promise((resolve, reject) => {
-    agent.once('connect', (err) => {
+const connect = async (agents: any[]) => {
+  return Promise.all(agents.map((agent: any) => new Promise<void>((resolve: any, reject: any) => {
+    agent.once('connect', (err: any) => {
       if (err) reject(err);
       else resolve();  
     });
@@ -18,19 +19,20 @@ const connect = async(agents) => {
 };
 
 // disconnect the 2 apps
-function disconnect(agents) {
-  agents.forEach((app) => {app.disconnect();}) ;
+function disconnect(agents: any[]) {
+  agents.forEach((app: any) => {app.disconnect();}) ;
   clearRequire('./../app');
 }
 
 
-test('MediaServer#connectCaller create active endpoint using Promise', (t) => {
+test('MediaServer#connectCaller create active endpoint using Promise', (t: any) => {
   t.timeoutAfter(6000);
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let ms, ep, dlg ;
+  let ms: any, ep: any, dlg: any ;
 
   srf.connect(config.get('drachtio-sut')) ;
 
@@ -40,12 +42,12 @@ test('MediaServer#connectCaller create active endpoint using Promise', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
 
-  function handler(req, res) {
+  function handler(req: any, res: any) {
 
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
@@ -53,7 +55,7 @@ test('MediaServer#connectCaller create active endpoint using Promise', (t) => {
         ms = mediaserver ;
         return mediaserver.connectCaller(req, res);
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         t.ok(endpoint instanceof Endpoint, 'connected incoming call to endpoint');
 
         ep = endpoint ;
@@ -82,7 +84,7 @@ test('MediaServer#connectCaller create active endpoint using Promise', (t) => {
         t.pass('play a single file');
         return ep.play(['silence_stream://150', 'silence_stream://150']);
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         t.fail(err);
       })
@@ -95,7 +97,7 @@ test('MediaServer#connectCaller create active endpoint using Promise', (t) => {
         t.end() ;
         return;
       })
-      .catch ((err) => {
+      .catch ((err: any) => {
         t.fail(err);
         if (ep) ep.destroy() ;
         if (dlg) dlg.destroy() ;
@@ -106,13 +108,14 @@ test('MediaServer#connectCaller create active endpoint using Promise', (t) => {
   }
 });
 
-test('MediaServer#connectCaller create active endpoint using Callback', (t) => {
+test('MediaServer#connectCaller create active endpoint using Callback', (t: any) => {
   t.timeoutAfter(5000);
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let ms, ep, dlg ;
+  let ms: any, ep: any, dlg: any ;
 
   srf.connect(config.get('drachtio-sut')) ;
 
@@ -122,11 +125,11 @@ test('MediaServer#connectCaller create active endpoint using Callback', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
-  function handler(req, res) {
+  function handler(req: any, res: any) {
 
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
@@ -136,7 +139,7 @@ test('MediaServer#connectCaller create active endpoint using Callback', (t) => {
       .then(() => {
         return ms.connectCaller(req, res);
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         ep = endpoint ;
         dlg = dialog ;
         return uac.streamTo(endpoint.local.sdp);
@@ -156,19 +159,20 @@ test('MediaServer#connectCaller create active endpoint using Callback', (t) => {
         t.end() ;
         return;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         t.fail(err);
       });
   }
 });
 
-test('MediaServer#connectCaller add custom event listeners', (t) => {
+test('MediaServer#connectCaller add custom event listeners', (t: any) => {
   t.timeoutAfter(5000);
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let ms, ep, dlg ;
+  let ms: any, ep: any, dlg: any ;
 
   srf.connect(config.get('drachtio-sut')) ;
 
@@ -178,11 +182,11 @@ test('MediaServer#connectCaller add custom event listeners', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
-  function handler(req, res) {
+  function handler(req: any, res: any) {
 
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
@@ -192,7 +196,7 @@ test('MediaServer#connectCaller add custom event listeners', (t) => {
       .then(() => {
         return ms.connectCaller(req, res);
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         ep = endpoint ;
         dlg = dialog ;
         return uac.streamTo(endpoint.local.sdp);
@@ -202,8 +206,8 @@ test('MediaServer#connectCaller add custom event listeners', (t) => {
         t.throws(ep.addCustomEventListener.bind(ep, 'example::event'), 'throws if handler is not present');
         t.throws(ep.addCustomEventListener.bind(ep, 'example::event', 'foobar'), 'throws if handler is not a function');
         t.throws(ep.addCustomEventListener.bind(ep, 'CUSTOM example::event'), 'throws if incorrect form of event name used');
-        const listener = (args) => {};
-        ep.addCustomEventListener('example::event', (args) => {});
+        const listener = (args: any) => {};
+        ep.addCustomEventListener('example::event', (args: any) => {});
         ep.addCustomEventListener('example::event', listener);
         t.equals(ep._customEvents.length, 1, 'successfully adds custom event listener');
         t.equals(ep.listenerCount('example::event'), 2, 'successfully adds custom event listener');
@@ -222,19 +226,20 @@ test('MediaServer#connectCaller add custom event listeners', (t) => {
         t.end() ;
         return;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         t.fail(err);
       });
   }
 });
 
-test('play and collect dtmf', (t) => {
+test('play and collect dtmf', (t: any) => {
   t.timeoutAfter(10000);
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let ms, ep, ep2, dlg ;
+  let ms: any, ep: any, ep2: any, dlg: any ;
   const digits = '1';
 
   srf.connect(config.get('drachtio-sut')) ;
@@ -245,11 +250,11 @@ test('play and collect dtmf', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
-  function handler(req, res) {
+  function handler(req: any, res: any) {
 
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
@@ -257,7 +262,7 @@ test('play and collect dtmf', (t) => {
         ms = mediaserver ;
         return mediaserver.connectCaller(req, res);
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         t.ok(endpoint instanceof Endpoint, 'connected incoming call to endpoint');
         ep = endpoint ;
         dlg = dialog ;
@@ -266,7 +271,7 @@ test('play and collect dtmf', (t) => {
       .then(() => {
         return ep.recordSession(EP_FILE);
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.pass('record_session');
         return uac.generateDtmf(digits);
       })
@@ -322,7 +327,7 @@ test('play and collect dtmf', (t) => {
           'recording_follow_transfer': true
         });
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.pass('set multiple values');
         ep.destroy() ;
         ep2.destroy() ;
@@ -332,7 +337,7 @@ test('play and collect dtmf', (t) => {
         t.end() ;
         return ;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         t.fail(err);
         ep.destroy() ;
@@ -344,7 +349,7 @@ test('play and collect dtmf', (t) => {
   }
 });
 
-test('record', (t) => {
+test('record', (t: any) => {
   t.timeoutAfter(10000);
 
   if (process.env.CI === 'travis') {
@@ -354,10 +359,11 @@ test('record', (t) => {
   }
 
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let ms, ep, dlg ;
+  let ms: any, ep: any, dlg: any ;
 
   srf.connect(config.get('drachtio-sut')) ;
 
@@ -367,24 +373,24 @@ test('record', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
-  function handler(req, res) {
+  function handler(req: any, res: any) {
 
-    let promiseRecord;
+    let promiseRecord: any;
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
         t.pass('connected to media server');
         ms = mediaserver ;
         return mediaserver.connectCaller(req, res);
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         t.ok(endpoint instanceof Endpoint, 'connected incoming call to endpoint');
         ep = endpoint ;
         dlg = dialog ;
-        ep.on('dtmf', (evt) => {
+        ep.on('dtmf', (evt: any) => {
           t.pass(`got dtmf: ${JSON.stringify(evt)}`);
         });
         return uac.streamTo(ep.local.sdp);
@@ -398,12 +404,12 @@ test('record', (t) => {
         t.pass('started recording');
         return uac.generateSilence(2000);
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.pass('generating dtmf #');
         uac.generateDtmf('#');
         return promiseRecord;
       })
-      .then((evt) => {
+      .then((evt: any) => {
         t.ok(evt.terminatorUsed === '#', `record terminated by # key: ${JSON.stringify(evt)}`);
         return;
       })
@@ -415,7 +421,7 @@ test('record', (t) => {
         t.end() ;
         return ;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         t.fail(err);
         ep.destroy() ;
@@ -427,7 +433,7 @@ test('record', (t) => {
   }
 });
 
-test.skip('fork audio', (t) => {
+test.skip('fork audio', (t: any) => {
   t.timeoutAfter(15000);
 
   if (process.env.CI === 'travis') {
@@ -436,10 +442,11 @@ test.skip('fork audio', (t) => {
     return;
   }
 
-  const uac = require('./scripts/call-generator')(config.get('call-generator')) ;
+  
+  const uac = callGenerator(config.get('call-generator'));
   const srf = new Srf();
   const mrf = new Mrf(srf) ;
-  let ms, ep, dlg ;
+  let ms: any, ep: any, dlg: any ;
 
   srf.connect(config.get('drachtio-sut')) ;
 
@@ -449,20 +456,20 @@ test.skip('fork audio', (t) => {
       uac.startScenario() ;
       return ;
     })
-    .catch((err) => {
+    .catch((err: any) => {
       t.fail(err);
     });
 
-  function handler(req, res) {
+  function handler(req: any, res: any) {
 
-    let promisePlayFile;
+    let promisePlayFile: any;
     mrf.connect(config.get('freeswitch-sut'))
       .then((mediaserver) => {
         t.pass('connected to media server');
         ms = mediaserver ;
         return mediaserver.connectCaller(req, res, {codecs: 'PCMU'});
       })
-      .then(({endpoint, dialog}) => {
+      .then(({endpoint, dialog}: any) => {
         t.ok(endpoint instanceof Endpoint, 'connected incoming call to endpoint');
         ep = endpoint ;
         dlg = dialog ;
@@ -481,7 +488,7 @@ test.skip('fork audio', (t) => {
         t.pass('started forking audio with metadata');
         return uac.playFile('voicemail/16000/vm-record_message.wav');
       })
-      .then((evt) => {
+      .then((evt: any) => {
         return ep.forkAudioSendText('simple text');
       })
       .then(() => {
@@ -504,7 +511,7 @@ test.skip('fork audio', (t) => {
         t.pass('started forking audio with no metadata');
         return uac.playFile('voicemail/16000/vm-record_message.wav');
       })
-      .then((evt) => {
+      .then((evt: any) => {
         return ep.forkAudioStop();
       })
       // pause, resume
@@ -520,13 +527,13 @@ test.skip('fork audio', (t) => {
         t.pass('started forking audio with no metadata');
         return uac.playFile('voicemail/16000/vm-record_message.wav');
       })
-       .then((evt) => {
+       .then((evt: any) => {
         return ep.forkAudioPause('background_record', true);
       })
-       .then((evt) => {
+       .then((evt: any) => {
         return ep.forkAudioResume();
       })
-      .then((evt) => {
+      .then((evt: any) => {
         return ep.forkAudioStop();
       })
       .then(() => {
@@ -541,7 +548,7 @@ test.skip('fork audio', (t) => {
         t.end() ;
         return ;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error(err);
         t.fail(err);
         ep.destroy() ;
