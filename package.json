@@ -3,9 +3,11 @@
   "version": "5.0.0",
   "description": "freeswitch-based media resource function for drachtio",
   "main": "lib/mrf.js",
+  "types": "lib/mrf.d.ts",
   "scripts": {
-    "jslint": "eslint lib",
-    "test": "NODE_ENV=test node test/ ",
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "NODE_ENV=test bun test/index.ts",
     "coverage": "./node_modules/.bin/nyc --reporter html --report-dir ./coverage npm run test"
   },
   "repository": {
@@ -30,12 +32,16 @@
     "snake-case": "^3.0.4"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.13",
+    "@types/node": "^25.5.2",
+    "@types/sdp-transform": "^2.15.0",
     "clear-module": "^4.1.2",
     "config": "^4.0.0",
     "eslint": "^9.0.0",
     "eslint-plugin-promise": "^7.0.0",
     "globals": "^15.0.0",
     "nyc": "^17.0.0",
-    "tape": "^5.9.0"
+    "tape": "^5.9.0",
+    "typescript": "^6.0.2"
   }
 }

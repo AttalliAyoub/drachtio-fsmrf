@@ -1,11 +1,12 @@
 # drachtio-fsmrf ![Build Status](https://github.com/drachtio/drachtio-fsmrf/workflows/CI/badge.svg)
 
-
 [![drachtio logo](http://drachtio.github.io/drachtio-srf/img/definition-only-cropped.png)](http://drachtio.github.io/drachtio-srf)
 
-Welcome to the Drachtio Media Resource framework, a partner module to [drachtio-srf](http://drachtio.github.io/drachtio-srf) for building high-performance [SIP](https://www.ietf.org/rfc/rfc3261.txt) server applications in pure javascript.
+Welcome to the Drachtio Media Resource framework, a partner module to [drachtio-srf](http://drachtio.github.io/drachtio-srf) for building high-performance [SIP](https://www.ietf.org/rfc/rfc3261.txt) server applications.
 
-drachtio-fsmrf implements common media server functions on top of Freeswitch and enables rich media applications involving IVR, conferencing and other features to be built in pure javascript without requiring in-depth knowledge of freeswitch configuration.
+**Now fully rewritten in modern TypeScript!** You can enjoy robust static typing, autocompletion, and modern language features directly out of the box.
+
+drachtio-fsmrf implements common media server functions on top of Freeswitch and enables rich media applications involving IVR, conferencing and other features to be built without requiring in-depth knowledge of freeswitch configuration.
 
 **Note**, drachtio-fsmrf applications require a freeswitch media server, configured as per [this ansible role](https://github.com/drachtio/ansible-role-fsmrf).
 
@@ -23,21 +24,21 @@ Let's dive in.
 # Getting Started
 First, create an instance of both the drachtio signaling resource framework and the media resource framework, as per below.
 
-```js
-const Srf = require('drachtio-srf');
-const Mrf = require('drachtio-fsmrf');
+```ts
+import Srf from 'drachtio-srf';
+import Mrf = require('drachtio-fsmrf');
 
-const srf = new Srf() ;
-srf.connect(host: '127.0.0.1');
+const srf = new Srf();
+srf.connect({ host: '127.0.0.1' });
 
 srf.on('connect', (err, hostport) => {
   console.log(`successfully connected to drachtio listening on ${hostport}`);
 });
 
-const mrf = new Mrf(srf) ;
+const mrf = new Mrf(srf);
 ```
 At that point, the mrf instance can be used to connect to and produce instances of MediaServers
-```js
+```ts
 mrf.connect({address: '127.0.0.1', port: 8021, secret: 'ClueCon'})
   .then((mediaserver) => {
     console.log('successfully connected to mediaserver');
@@ -47,30 +48,13 @@ mrf.connect({address: '127.0.0.1', port: 8021, secret: 'ClueCon'})
   });
 ```
 In the example above, we see the `mrf#connect` method returns a Promise that resolves with an instance of the media server.  As with all public methods, a callback variant is available as well:
-```js
+```ts
 // we're connecting to the Freeswitch event socket
 mrf.connect({address: '127.0.0.1', port: 8021, secret: 'ClueCon'}, (err, mediaserver) => {
     if (err) {
       return console.log(`error connecting to mediaserver: ${err}`);
     }
-    console.log(`connected to mediaserver listening on ${JSON.stringify(ms.sip)}`);
-    /*
-      {
-        "ipv4": {
-          "udp": {
-            "address":"172.28.0.11:5060"
-          },
-          "dtls": {
-            "address":"172.28.0.11:5081"
-          }
-        },
-        "ipv6":{
-          "udp":{},
-          "dtls":{}
-        }
-      }
-    */
-  }
+    console.log(`connected to mediaserver listening on ${JSON.stringify(mediaserver?.sip)}`);
 });
 ```
 Having a media server instance, we can now create instances of Endpoints and Conferences and invoke operations on those objects.
@@ -78,96 +62,82 @@ Having a media server instance, we can now create instances of Endpoints and Con
 # Performing Media Operations
 
 We can create an Endpoint when we have an incoming call, by connecting it to a Mediaserver.
-```js
+```ts
 srf.invite((req, res) => {
   mediaserver.connectCaller(req, res)
     .then(({endpoint, dialog}) => {
       console.log('successfully connected call to media server');
-
+    });
+});
 ```
-In the example above, we use `MediaServer#connectCaller()` to connect a call to a Mediaserver, producing both an Endpoint (represening the channel on Freeswitch) and a Dialog (representing the UAS dialog).
+In the example above, we use `MediaServer#connectCaller()` to connect a call to a Mediaserver, producing both an Endpoint (representing the channel on Freeswitch) and a Dialog (representing the UAS dialog).
 
 Again, note that a callback version is also available:
-```js
+```ts
 srf.invite((req, res) => {   
-  mediaserver.connectCaller(req, res, (err, {endpoint, dialog} => {
+  mediaserver.connectCaller(req, res, (err, {endpoint, dialog}) => {
     if (err) return console.log(`Error connecting ${err}`);
     console.log('successfully connected call to media server');
   });
-
+});
 ```
 We can also create an Endpoint outside of any inbound call by calling `MediaServer#createEndpoint()`.  This will give us an initially inactive Endpoint that we can later modify to stream to a remote destination:
-```js
+```ts
 mediaserver.createEndpoint()
   .then((endpoint) => {
-
     // some time later...
     endpoint.modify(remoteSdp);
-
   });
-
 ```
 Once we have an Endpoint, we can do things like play a prompt and collect dtmf:
-```js
+```ts
 endpoint.playCollect({file: myFile, min: 1, max: 4})
   .then((obj) => {
     console.log(`collected digits: ${obj.digits}`);
   });
 ```
 Conferences work similarly - we create them and then can join Endpoints to them.
-```js
+```ts
 mediaserver.createConference('my_conf', {maxMembers: 50})
   .then((conference) => {
-    return endpoint.join(conference)
+    return endpoint.join(conference);
   })
   .then(() => {
-    console.log('endpoint joined to conference')
+    console.log('endpoint joined to conference');
   });
 ```
 When an Endpoint is joined to a Conference, we have an additional set of operations we can invoke on the Endpoint -- things like mute/unmute, turn on or off automatic gain control, playing a file directly to the participant on that Endpoint, etc.  These actions are performed by methods that all begin with *conf*:
-```js
-endpoint.join(conference, (err) => {
-  if (err) return console.log(`Error ${err}`);
-
-  endpoint.confMute();
-  endpoint.confPlay(myFile);
-}
+```ts
+endpoint.join(conference)
+  .then(() => {
+    endpoint.confMute();
+    endpoint.confPlay(myFile);
+  })
+  .catch((err) => console.log(`Error ${err}`));
 ```
 
 # Execute any Freeswitch application or api
 As shown above, some methods have been added to the `Endpoint` and `Conference` class to provide syntactic sugar over freeswitch aplications and apis.  However, any Freeswitch application or api can also be called directly.
 
-`Endpoint#execute` executes a Freeswitch application and returns in either the callback or the Prompise the contents of the associated CHANNEL_EXECUTE_COMPLETE event that Freeswitch returns. The event structure [is defined here](https://github.com/englercj/node-esl/blob/master/lib/esl/Event.js):
+`Endpoint#execute` executes a Freeswitch application and returns in either the callback or the Promise the contents of the associated CHANNEL_EXECUTE_COMPLETE event that Freeswitch returns. The event structure [is defined here](https://github.com/englercj/node-esl/blob/master/lib/esl/Event.js):
 
-```js
+```ts
 // generate dtmf from an Endpoint
 endpoint.execute('send_dtmf', `${digits}@125`, (err, evt) => {
   if (err) return console.error(err);
 
   console.log(`last dtmf duration was ${evt.getHeader('variable_last_dtmf_duration')}`);
-})
+});
 ```
 `Endpoint#api` executes a Freeswitch api call and returns in either the callback or the Promise the response that Freeswitch returns to the command.  
-```js
+```ts
 endpoint.api('uuid_dump', endpoint.uuid)
   .then((response) => {
     console.log(`${JSON.stringify(response)}`);
-    //
-    //    {
-    //  "headers": [{
-    //    "name": "Content-Type",
-    //    "value": "api/response"
-    //  }, {
-    //    "name": "Content-Length",
-    //    "value": 8475
-    //  }],
-    //  "hPtr": null,
-    //  "body": "Event-Name: CHANNEL_DATA\n..
-
   });
 ```
-Note that Content-Type api/response returned by api requests return a body consisting of plain text separated by newlines. To parse this body into a plain javascript object with named properties, use the `Mrf#utils#parseBodyText` method, as per below:
-```js
+Note that Content-Type api/response returned by api requests return a body consisting of plain text separated by newlines. To parse this body into a plain javascript object with named properties, use the `Mrf.utils.parseBodyText` method, as per below:
+```ts
 endpoint.api('uuid_dump', endpoint.uuid)
   .then((evt) => {
     const vars = Mrf.utils.parseBodyText(evt.getBody());
@@ -181,7 +151,7 @@ endpoint.api('uuid_dump', endpoint.uuid)
 ```
 # Tests
 To run tests you will need Docker and docker-compose installed on your host, as the test suite runs in a docker network created by [docker-compose-testbed.yaml](test/docker-compose-testbed.yaml).  The first time you run the tests, it will take a while since docker images will be downloaded to your host.
-```js
+```bash
 $ npm test
 
   starting docker network..
@@ -198,3 +168,6 @@ $ npm test
 ```
 # License
 [MIT](https://github.com/drachtio/drachtio-fsmrf/blob/master/LICENSE)
+
+# Credits
+Original library authored by Dave Horton for the Drachtio ecosystem.

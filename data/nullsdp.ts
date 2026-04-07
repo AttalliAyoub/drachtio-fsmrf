@@ -1,8 +1,5 @@
-exports = module.exports = produceSdp ;
-
-function produceSdp( address, port ) {
-
-  var sdp = ['v=0', 
+export = function produceSdp(address: string, port: string | number) {
+  const sdp = ['v=0', 
     'o=- 1111 0 IN IP4 ip-address',
     's=drachtio session',
     'c=IN IP4 ip-address',
@@ -13,8 +10,9 @@ function produceSdp( address, port ) {
     'a=fmtp:113 useinbandfec=1',
     'a=rtpmap:101 telephone-event/8000',
     'a=fmtp:101 0-15',
-    'a=inactive\r\n'] ;
+    'a=inactive
+'];
 
-  return sdp.join('\r\n').replace(/ip-address/g, address).replace(/port/g, port) ;
-}
-
+  return sdp.join('
+').replace(/ip-address/g, address).replace(/port/g, port.toString());
+};
