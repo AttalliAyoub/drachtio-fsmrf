@@ -52,6 +52,44 @@ namespace Conference {
   export type PlaybackCallback = (err: Error | null, results?: PlaybackResults) => void;
 }
 
+namespace Conference {
+  export interface Events {
+
+    'addMember': (evt: any) => void;
+    'delMember': (evt: any) => void;
+    'startTalking': (evt: any) => void;
+    'stopTalking': (evt: any) => void;
+    'muteDetect': (evt: any) => void;
+    'unmuteMember': (evt: any) => void;
+    'muteMember': (evt: any) => void;
+    'kickMember': (evt: any) => void;
+    'dtmfMember': (evt: any) => void;
+    'startRecording': (evt: any) => void;
+    'stopRecording': (evt: any) => void;
+    'playFile': (evt: any) => void;
+    'playFileMember': (evt: any) => void;
+    'playFileDone': (evt: any) => void;
+    'lock': (evt: any) => void;
+    'unlock': (evt: any) => void;
+    'transfer': (evt: any) => void;
+    'record': (evt: any) => void;
+
+  }
+}
+
+declare interface Conference {
+  on<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+  on(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  once<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  off<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+  off(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  emit<U extends keyof Conference.Events>(event: U, ...args: Parameters<Conference.Events[U]>): boolean;
+  emit(event: string | symbol, ...args: any[]): boolean;
+}
 class Conference extends EventEmitter {
   private _endpoint: Endpoint;
   public name: string;

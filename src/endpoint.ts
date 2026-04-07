@@ -95,6 +95,33 @@ namespace Endpoint {
   export type PlayOperationCallback = (err: Error | null, results?: any) => void;
 }
 
+namespace Endpoint {
+  export interface Events {
+
+    'ready': () => void;
+    'dtmf': (args: { dtmf: string; duration: string; source: string; ssrc?: string; timestamp?: string }) => void;
+    'tone': (args: { tone: string }) => void;
+    'playback-start': (opts: any) => void;
+    'playback-stop': (opts: any) => void;
+    'channelCallState': (args: { state: string }) => void;
+    'destroy': (args?: { reason?: string }) => void;
+
+  }
+}
+
+declare interface Endpoint {
+  on<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+  on(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  once<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  off<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+  off(event: string | symbol, listener: (...args: any[]) => void): this;
+
+  emit<U extends keyof Endpoint.Events>(event: U, ...args: Parameters<Endpoint.Events[U]>): boolean;
+  emit(event: string | symbol, ...args: any[]): boolean;
+}
 class Endpoint extends EventEmitter {
   private _customEvents: string[];
   private _conn: any;
