@@ -175,6 +175,8 @@ class Conference extends EventEmitter {
     return this.endpoint.mediaserver;
   }
 
+  destroy(): Promise<void>;
+  destroy(callback: Conference.OperationCallback): this;
   destroy(callback?: Conference.OperationCallback): Promise<void> | this {
     debug(`Conference#destroy - destroying conference ${this.name}`);
     const __x = (cb: (err: Error | null) => void) => {
@@ -195,16 +197,17 @@ class Conference extends EventEmitter {
   }
 
   getSize(): Promise<number> {
-    return (this.list('count') as Promise<any>).then((evt: EslEvent) => {
+    return (this.list('count') as Promise<string | number | undefined>).then((res: string | number | undefined) => {
       try {
-        return parseInt(evt.getBody(), 10);
+        if (typeof res === 'number') return res;
+        return parseInt(String(res), 10);
       } catch (err) {
         throw new Error(`unexpected (non-integer) response to conference list summary: ${err}`);
       }
     });
   }
 
-  private _execOp(op: string, args: string | string[] | Conference.OperationCallback, callback?: Conference.OperationCallback): Promise<any> | this {
+  private _execOp(op: string, args: string | string[] | Conference.OperationCallback, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     if (typeof args === 'function') {
       callback = args;
       args = '';
@@ -247,7 +250,9 @@ class Conference extends EventEmitter {
   undeaf(args?: string | string[] | Conference.OperationCallback, callback?: Conference.OperationCallback) { return this._execOp('undeaf', args || '', callback); }
   chkRecord(args?: string | string[] | Conference.OperationCallback, callback?: Conference.OperationCallback) { return this._execOp('chkRecord', args || '', callback); }
 
-  set(param: string, value: string, callback?: Conference.OperationCallback): Promise<any> | this {
+  set(param: string, value: string): Promise<string | number | undefined>;
+  set(param: string, value: string, callback: Conference.OperationCallback): this;
+  set(param: string, value: string, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     debug(`Conference#setParam: conference ${this.name} set ${param} ${value}`);
     const __x = (cb: Conference.OperationCallback) => {
       this.endpoint.api('conference', `${this.name} set ${param} ${value}`, (err: Error | null, evt: EslEvent) => {
@@ -270,7 +275,9 @@ class Conference extends EventEmitter {
     });
   }
 
-  get(param: string, callback?: Conference.OperationCallback): Promise<any> | this {
+  get(param: string): Promise<string | number | undefined>;
+  get(param: string, callback: Conference.OperationCallback): this;
+  get(param: string, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     debug(`Conference#getParam: conference ${this.name} get ${param}`);
     const __x = (cb: Conference.OperationCallback) => {
       this.endpoint.api('conference', `${this.name} get ${param}`, (err: Error | null, evt: EslEvent) => {
@@ -294,7 +301,9 @@ class Conference extends EventEmitter {
     });
   }
 
-  startRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
+  startRecording(file: string): Promise<string | number | undefined>;
+  startRecording(file: string, callback: Conference.OperationCallback): this;
+  startRecording(file: string, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     assert.ok(typeof file === 'string', "'file' parameter must be provided");
 
     const __x = (cb: Conference.OperationCallback) => {
@@ -322,7 +331,9 @@ class Conference extends EventEmitter {
     });
   }
 
-  pauseRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
+  pauseRecording(file: string): Promise<string | number | undefined>;
+  pauseRecording(file: string, callback: Conference.OperationCallback): this;
+  pauseRecording(file: string, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     const __x = (cb: Conference.OperationCallback) => {
       this.recordFile = file;
       this.endpoint.api('conference', `${this.name} recording pause ${this.recordFile}`, (err: Error | null, evt: EslEvent) => {
@@ -348,7 +359,9 @@ class Conference extends EventEmitter {
     });
   }
 
-  resumeRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
+  resumeRecording(file: string): Promise<string | number | undefined>;
+  resumeRecording(file: string, callback: Conference.OperationCallback): this;
+  resumeRecording(file: string, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     const __x = (cb: Conference.OperationCallback) => {
       this.recordFile = file;
       this.endpoint.api('conference', `${this.name} recording resume ${this.recordFile}`, (err: Error | null, evt: EslEvent) => {
@@ -374,7 +387,9 @@ class Conference extends EventEmitter {
     });
   }
 
-  stopRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
+  stopRecording(file: string): Promise<string | number | undefined>;
+  stopRecording(file: string, callback: Conference.OperationCallback): this;
+  stopRecording(file: string, callback?: Conference.OperationCallback): Promise<string | number | undefined> | this {
     const __x = (cb: Conference.OperationCallback) => {
       this.endpoint.api('conference', `${this.name} recording stop ${this.recordFile}`, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
@@ -400,6 +415,8 @@ class Conference extends EventEmitter {
     });
   }
 
+  play(file: string | string[]): Promise<Conference.PlaybackResults>;
+  play(file: string | string[], callback: Conference.PlaybackCallback): this;
   play(file: string | string[], callback?: Conference.PlaybackCallback): Promise<Conference.PlaybackResults> | this {
     assert.ok(typeof file === 'string' || Array.isArray(file), 'file param is required and must be a string or array');
 
@@ -409,8 +426,8 @@ class Conference extends EventEmitter {
 
       for (const f of files) {
         try {
-          const result = await (this.endpoint.api('conference', `${this.name} play ${f}`) as Promise<any>);
-          if (result && result.body && -1 !== result.body.indexOf(' not found.')) {
+          const result = await (this.endpoint.api('conference', `${this.name} play ${f}`) as Promise<EslEvent>);
+          if (result && result.getBody() && -1 !== result.getBody().indexOf(' not found.')) {
             debug(`file ${f} was not queued because it was not found, or conference is empty`);
           } else {
             queued.push(f);

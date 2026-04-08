@@ -46,7 +46,7 @@ namespace MediaServer {
     srtp?: boolean;
     family?: 'ipv4' | 'ipv6';
     dtls?: boolean;
-		signal?: AbortSignal;
+    signal?: AbortSignal;
     [key: string]: unknown;
   }
 
@@ -199,7 +199,7 @@ class MediaServer extends EventEmitter {
       this.advertisedAddress = advertisedAddress || this.listenAddress;
       this.advertisedPort = advertisedPort || this.listenPort;
       debug(`listening on ${listenAddress}:${listenPort}, advertising ${this.advertisedAddress}:${this.advertisedPort}`);
-      
+
       this._server = new esl.Server({ server: server, myevents: false }, () => {
         this.emit('connect');
 
@@ -293,6 +293,8 @@ class MediaServer extends EventEmitter {
 
   api(command: string): Promise<string>;
   api(command: string, callback: MediaServer.ApiCallback): this;
+  api(command: string): Promise<string>;
+  api(command: string, callback: MediaServer.ApiCallback): this;
   api(command: string, callback?: MediaServer.ApiCallback): Promise<string> | this {
     assert.strictEqual(typeof command, 'string', "'command' must be a valid freeswitch api command");
 
@@ -317,6 +319,10 @@ class MediaServer extends EventEmitter {
   createEndpoint(opts?: MediaServer.EndpointOptions): Promise<Endpoint>;
   createEndpoint(opts: MediaServer.EndpointOptions, callback: MediaServer.CreateEndpointCallback): this;
   createEndpoint(callback: MediaServer.CreateEndpointCallback): this;
+  createEndpoint(): Promise<Endpoint>;
+  createEndpoint(opts: MediaServer.EndpointOptions): Promise<Endpoint>;
+  createEndpoint(callback: MediaServer.CreateEndpointCallback): this;
+  createEndpoint(opts: MediaServer.EndpointOptions, callback: MediaServer.CreateEndpointCallback): this;
   createEndpoint(opts?: MediaServer.EndpointOptions | MediaServer.CreateEndpointCallback, callback?: MediaServer.CreateEndpointCallback): Promise<Endpoint> | this {
     if (typeof opts === 'function') {
       callback = opts;
@@ -341,12 +347,12 @@ class MediaServer extends EventEmitter {
     assert.ok(
       opts.is3pcc || !requiresDtlsHandshake(opts.remoteSdp as string),
       'Mediaserver#createEndpoint() can not be called with a remote sdp requiring a dtls handshake; ' +
-        'use Mediaserver#connectCaller() instead, as this allows the necessary handshake'
+      'use Mediaserver#connectCaller() instead, as this allows the necessary handshake'
     );
 
     const __x = async (cb: MediaServer.CreateEndpointCallback) => {
       const uuid = generateUuid();
-      
+
       const done = (err: Error | null, endpoint?: Endpoint) => {
         if (opts.signal) {
           opts.signal.removeEventListener('abort', onAbort);
@@ -423,12 +429,12 @@ class MediaServer extends EventEmitter {
           },
           localSdp: opts.remoteSdp
         });
-        
+
         if (opts.signal && opts.signal.aborted) {
           dlg.destroy();
           return;
         }
-        
+
         debug(`MediaServer#createEndpoint - createUAC produced dialog for ${uuid}`);
         const obj = this.pendingConnections.get(uuid); if (!obj) return;
         obj.dialog = dlg;
@@ -462,6 +468,10 @@ class MediaServer extends EventEmitter {
   connectCaller(req: SrfRequest, res: SrfResponse, opts?: MediaServer.EndpointOptions): Promise<{ endpoint: Endpoint; dialog: SrfDialog }>;
   connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
   connectCaller(req: SrfRequest, res: SrfResponse, callback: MediaServer.ConnectCallerCallback): this;
+  connectCaller(req: SrfRequest, res: SrfResponse): Promise<{ endpoint: Endpoint; dialog: SrfDialog }>;
+  connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions): Promise<{ endpoint: Endpoint; dialog: SrfDialog }>;
+  connectCaller(req: SrfRequest, res: SrfResponse, callback: MediaServer.ConnectCallerCallback): this;
+  connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
   connectCaller(req: SrfRequest, res: SrfResponse, opts?: MediaServer.EndpointOptions | MediaServer.ConnectCallerCallback, callback?: MediaServer.ConnectCallerCallback): Promise<{ endpoint: Endpoint; dialog: SrfDialog }> | this {
     if (typeof opts === 'function') {
       callback = opts;
@@ -577,13 +587,14 @@ class MediaServer extends EventEmitter {
   createConference(opts: MediaServer.ConferenceCreateOptions, callback: MediaServer.CreateConferenceCallback): this;
   createConference(name: string, callback: MediaServer.CreateConferenceCallback): this;
   createConference(callback: MediaServer.CreateConferenceCallback): this;
+  createConference(...args: any[]): Promise<Conference>;
   createConference(...args: any[]): Promise<Conference> | this {
     let name: string;
     let opts: MediaServer.ConferenceCreateOptions = {};
     let callback: MediaServer.CreateConferenceCallback | undefined;
 
     let generateConfName = false;
-    
+
     if (args.length === 0) {
       name = `anon-${generateUuid()}`;
       generateConfName = true;
@@ -641,7 +652,7 @@ class MediaServer extends EventEmitter {
         if (!generateConfName) await verifyConfDoesNotExist(name);
         const endpoint = await this.createEndpoint();
         opts.flags = { ...opts.flags, endconf: true, mute: true, vmute: true };
-        const { confUuid } = await endpoint.join(name, opts);
+        const { confUuid } = await (endpoint.join(name, opts) as Promise<{ confUuid: string }>);
         const conference = new Conference(name, confUuid, endpoint, opts as any);
         debug(`MediaServer#createConference: created conference ${name}:${confUuid}`);
         console.log(`MediaServer#createConference: created conference ${name}:${confUuid}`);

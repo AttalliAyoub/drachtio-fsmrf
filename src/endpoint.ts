@@ -93,7 +93,20 @@ namespace Endpoint {
   }
 
   export type OperationCallback = (err: Error | null, ...results: any[]) => void;
-  export type PlayOperationCallback = (err: Error | null, results?: any) => void;
+  export interface PlaybackResults {
+    seconds?: number;
+    milliseconds?: number;
+    samples?: number;
+    remainingFiles?: string[];
+    playbackSeconds?: string;
+    playbackMilliseconds?: string;
+    digits?: string;
+    invalidDigits?: string;
+    terminatorUsed?: string;
+    playbackLastOffsetPos?: string;
+    done?: (...args: any[]) => void;
+  }
+  export type PlayOperationCallback = (err: Error | null, results?: PlaybackResults) => void;
 }
 
 namespace Endpoint {
@@ -279,7 +292,7 @@ class Endpoint extends EventEmitter {
     if (this._dialog) return this._dialog.request(opts);
   }
 
-  private async _setOrExport(which: 'set' | 'export', param: string | object, value?: string, callback?: Endpoint.OperationCallback): Promise<any> {
+  private _setOrExport(which: 'set' | 'export', param: string | object, value?: string, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const obj: Record<string, any> = {};
     if (typeof param === 'string') obj[param] = value;
     else Object.assign(obj, param);
@@ -311,8 +324,8 @@ class Endpoint extends EventEmitter {
       cb(null);
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
     return new Promise((resolve, reject) => {
@@ -323,20 +336,28 @@ class Endpoint extends EventEmitter {
     });
   }
 
-  set(param: string | object, value?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  set(param: string | object): Promise<EslEvent>;
+  set(param: string | object, value: string): Promise<EslEvent>;
+  set(param: string | object, callback: Endpoint.OperationCallback): this;
+  set(param: string | object, value: string, callback: Endpoint.OperationCallback): this;
+  set(param: string | object, value?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof param === 'object' && typeof value === 'function') {
       callback = value;
       value = undefined;
     }
-    return this._setOrExport('set', param, value as string, callback) as any;
+    return this._setOrExport('set', param, value as string, callback as any) as any;
   }
 
-  export(param: string | object, value?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  export(param: string | object): Promise<EslEvent>;
+  export(param: string | object, value: string): Promise<EslEvent>;
+  export(param: string | object, callback: Endpoint.OperationCallback): this;
+  export(param: string | object, value: string, callback: Endpoint.OperationCallback): this;
+  export(param: string | object, value?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof param === 'object' && typeof value === 'function') {
       callback = value;
       value = undefined;
     }
-    return this._setOrExport('export', param, value as string, callback) as any;
+    return this._setOrExport('export', param, value as string, callback as any) as any;
   }
 
   resetEslCustomEvent() {
@@ -372,7 +393,11 @@ class Endpoint extends EventEmitter {
     if (-1 !== idx && del) this._customEvents.splice(idx, 1);
   }
 
-  getChannelVariables(includeMedia?: boolean | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  getChannelVariables(): Promise<Record<string, string>>;
+  getChannelVariables(includeMedia: boolean): Promise<Record<string, string>>;
+  getChannelVariables(callback: Endpoint.OperationCallback): this;
+  getChannelVariables(includeMedia: boolean, callback: Endpoint.OperationCallback): this;
+  getChannelVariables(includeMedia?: boolean | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<Record<string, string>> | this {
     if (typeof includeMedia === 'function') {
       callback = includeMedia;
       includeMedia = false;
@@ -394,15 +419,15 @@ class Endpoint extends EventEmitter {
       }
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, results) => {
         if (err) return reject(err);
-        resolve(results);
+        resolve(results as any);
       });
     });
   }
@@ -427,7 +452,9 @@ class Endpoint extends EventEmitter {
     }
   }
 
-  play(file: string | string[] | Endpoint.PlaybackOptions, callback?: Endpoint.PlayOperationCallback): Promise<any> | this {
+  play(file: string | string[] | Endpoint.PlaybackOptions): Promise<Endpoint.PlaybackResults>;
+  play(file: string | string[] | Endpoint.PlaybackOptions, callback: Endpoint.PlayOperationCallback): this;
+  play(file: string | string[] | Endpoint.PlaybackOptions, callback?: Endpoint.PlayOperationCallback): Promise<Endpoint.PlaybackResults> | this {
     assert.ok(typeof file === 'string' || typeof file === 'object' || Array.isArray(file), 'file param is required');
 
     let timeoutSecs = -1;
@@ -459,20 +486,22 @@ class Endpoint extends EventEmitter {
       }
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  playCollect(opts: Endpoint.PlayCollectOptions, callback?: Endpoint.PlayOperationCallback): Promise<any> | this {
+  playCollect(opts: Endpoint.PlayCollectOptions): Promise<Endpoint.PlaybackResults>;
+  playCollect(opts: Endpoint.PlayCollectOptions, callback: Endpoint.PlayOperationCallback): this;
+  playCollect(opts: Endpoint.PlayCollectOptions, callback?: Endpoint.PlayOperationCallback): Promise<Endpoint.PlaybackResults> | this {
     assert.strictEqual(typeof opts, 'object', "'opts' param is required");
     assert.strictEqual(typeof opts.file, 'string', "'opts.file' param is required");
 
@@ -505,20 +534,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  say(text: string, opts: any, callback?: Endpoint.PlayOperationCallback): Promise<any> | this {
+  say(text: string, opts: any): Promise<Endpoint.PlaybackResults>;
+  say(text: string, opts: any, callback: Endpoint.PlayOperationCallback): this;
+  say(text: string, opts: any, callback?: Endpoint.PlayOperationCallback): Promise<Endpoint.PlaybackResults> | this {
     assert.strictEqual(typeof text, 'string', "'text' is required");
     assert.strictEqual(typeof opts, 'object', "'opts' param is required");
     assert.strictEqual(typeof opts.sayType, 'string', "'opts.sayType' param is required");
@@ -548,20 +579,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  speak(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  speak(opts: any): Promise<Endpoint.PlaybackResults>;
+  speak(opts: any, callback: Endpoint.OperationCallback): this;
+  speak(opts: any, callback?: Endpoint.OperationCallback): Promise<Endpoint.PlaybackResults> | this {
     assert.strictEqual(typeof opts, 'object', "'opts' param is required");
     assert.strictEqual(typeof opts.ttsEngine, 'string', "'opts.ttsEngine' param is required");
     assert.strictEqual(typeof opts.voice, 'string', "'opts.voice' param is required");
@@ -577,20 +610,24 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  join(conf: string | Conference, opts?: Endpoint.ConfJoinOptions | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  join(conf: string | Conference): Promise<{ confUuid: string }>;
+  join(conf: string | Conference, opts: Endpoint.ConfJoinOptions): Promise<{ confUuid: string }>;
+  join(conf: string | Conference, callback: Endpoint.OperationCallback): this;
+  join(conf: string | Conference, opts: Endpoint.ConfJoinOptions, callback: Endpoint.OperationCallback): this;
+  join(conf: string | Conference, opts?: Endpoint.ConfJoinOptions | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<{ confUuid: string }> | this {
     const confName = typeof conf === 'string' ? conf : conf.name;
     if (typeof opts === 'function') {
       callback = opts;
@@ -633,20 +670,22 @@ class Endpoint extends EventEmitter {
       };
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  bridge(other: string | Endpoint, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  bridge(other: string | Endpoint): Promise<EslEvent>;
+  bridge(other: string | Endpoint, callback: Endpoint.OperationCallback): this;
+  bridge(other: string | Endpoint, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const otherUuid = typeof other === 'string' ? other : other.uuid;
 
     const __x = (cb: Endpoint.OperationCallback) => {
@@ -659,20 +698,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  unbridge(callback?: Endpoint.OperationCallback): Promise<any> | this {
+  unbridge(): Promise<EslEvent>;
+  unbridge(callback: Endpoint.OperationCallback): this;
+  unbridge(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const __x = (cb: Endpoint.OperationCallback) => {
       this.api('uuid_transfer', [this.uuid, '-both', 'park', 'inline'], (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
@@ -684,20 +725,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  getNonMatchingConfParticipants(confName: string, tag: string, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  getNonMatchingConfParticipants(confName: string, tag: string): Promise<EslEvent>;
+  getNonMatchingConfParticipants(confName: string, tag: string, callback: Endpoint.OperationCallback): this;
+  getNonMatchingConfParticipants(confName: string, tag: string, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const __x = (cb: Endpoint.OperationCallback) => {
       const args = [confName, 'gettag', tag, 'nomatch'];
       this.api('conference', args, (err: Error | null, evt: EslEvent) => {
@@ -710,19 +753,21 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  setGain(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  setGain(opts: any): Promise<EslEvent>;
+  setGain(opts: any, callback: Endpoint.OperationCallback): this;
+  setGain(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const __x = (cb: Endpoint.OperationCallback) => {
       const db = parseDecibels(opts);
       const args = [this.uuid, 'setGain', db.toString()];
@@ -736,19 +781,21 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  dub(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  dub(opts: any): Promise<EslEvent>;
+  dub(opts: any, callback: Endpoint.OperationCallback): this;
+  dub(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const { action, track, play, say, loop, gain } = opts;
     assert.ok(action, 'ep#dub: action is required');
     assert.ok(track, 'ep#dub: track is required');
@@ -775,20 +822,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  startTranscription(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  startTranscription(opts: any): Promise<EslEvent>;
+  startTranscription(opts: any, callback: Endpoint.OperationCallback): this;
+  startTranscription(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     opts = opts || {};
     let apiCall: string, bugname: string;
     if (opts.vendor.startsWith('custom:')) {
@@ -808,7 +857,7 @@ class Endpoint extends EventEmitter {
       const args: any[] = opts.hostport ?
         [this.uuid, 'start', opts.hostport, opts.locale || 'en-US', type, channels, opts.bugname || bugname] :
         [this.uuid, 'start', opts.locale || 'en-US', type, channels, opts.bugname || bugname];
-      
+
       if (opts.prompt) {
         const a = args.concat(opts.prompt);
         this.api(apiCall, `^^|${a.join('|')}`, (err: Error | null, evt: EslEvent) => {
@@ -827,20 +876,22 @@ class Endpoint extends EventEmitter {
       }
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  startTranscriptionTimers(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  startTranscriptionTimers(opts: any): Promise<EslEvent>;
+  startTranscriptionTimers(opts: any, callback: Endpoint.OperationCallback): this;
+  startTranscriptionTimers(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof opts === 'function') {
       callback = opts;
       opts = { vendor: 'nuance' };
@@ -863,20 +914,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  stopTranscription(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  stopTranscription(opts: any): Promise<EslEvent>;
+  stopTranscription(opts: any, callback: Endpoint.OperationCallback): this;
+  stopTranscription(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof opts === 'function') {
       callback = opts;
       opts = { vendor: 'google' };
@@ -903,20 +956,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  startVadDetection(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  startVadDetection(opts: any): Promise<EslEvent>;
+  startVadDetection(opts: any, callback: Endpoint.OperationCallback): this;
+  startVadDetection(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     opts = opts || {};
     const vendor = opts.vendor || 'native';
     const apiCall = vendor === 'native' ? 'uuid_vad_detect' : 'uuid_vad_silero';
@@ -940,20 +995,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  stopVadDetection(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  stopVadDetection(opts: any): Promise<EslEvent>;
+  stopVadDetection(opts: any, callback: Endpoint.OperationCallback): this;
+  stopVadDetection(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     opts = opts || {};
     const vendor = opts.vendor || 'native';
     const apiCall = vendor === 'native' ? 'uuid_vad_detect' : 'uuid_vad_silero';
@@ -969,20 +1026,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  forkAudioStart(opts: any, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  forkAudioStart(opts: any): Promise<EslEvent>;
+  forkAudioStart(opts: any, callback: Endpoint.OperationCallback): this;
+  forkAudioStart(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     assert.ok(typeof opts.wsUrl === 'string', 'opts.wsUrl is required');
     const sampling = opts.sampling || '8000';
     const mix = opts.mixType || 'mono';
@@ -1008,20 +1067,25 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  forkAudioSendText(bugname: any, metadata?: any, callback?: any): Promise<any> | this {
+  forkAudioSendText(bugname: any): Promise<EslEvent>;
+  forkAudioSendText(bugname: any, metadata: any): Promise<EslEvent>;
+  forkAudioSendText(callback: Endpoint.OperationCallback): this;
+  forkAudioSendText(bugname: any, callback: Endpoint.OperationCallback): this;
+  forkAudioSendText(bugname: any, metadata: any, callback: Endpoint.OperationCallback): this;
+  forkAudioSendText(bugname: any, metadata?: any, callback?: any): Promise<EslEvent> | this {
     const args: any[] = [this.uuid, 'send_text'];
     if (arguments.length === 1 && typeof bugname === 'function') {
       callback = bugname;
@@ -1062,20 +1126,26 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  forkAudioStop(bugname?: any, metadata?: any, callback?: any): Promise<any> | this {
+  forkAudioStop(): Promise<EslEvent>;
+  forkAudioStop(bugname: any): Promise<EslEvent>;
+  forkAudioStop(bugname: any, metadata: any): Promise<EslEvent>;
+  forkAudioStop(callback: Endpoint.OperationCallback): this;
+  forkAudioStop(bugname: any, callback: Endpoint.OperationCallback): this;
+  forkAudioStop(bugname: any, metadata: any, callback: Endpoint.OperationCallback): this;
+  forkAudioStop(bugname?: any, metadata?: any, callback?: any): Promise<EslEvent> | this {
     const args: any[] = [this.uuid, 'stop'];
     if (arguments.length === 1 && typeof bugname === 'function') {
       callback = bugname;
@@ -1117,20 +1187,26 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  forkAudioPause(bugname?: any, silence?: any, callback?: any): Promise<any> | this {
+  forkAudioPause(): Promise<EslEvent>;
+  forkAudioPause(bugname: any): Promise<EslEvent>;
+  forkAudioPause(bugname: any, silence: any): Promise<EslEvent>;
+  forkAudioPause(callback: Endpoint.OperationCallback): this;
+  forkAudioPause(bugname: any, callback: Endpoint.OperationCallback): this;
+  forkAudioPause(bugname: any, silence: any, callback: Endpoint.OperationCallback): this;
+  forkAudioPause(bugname?: any, silence?: any, callback?: any): Promise<EslEvent> | this {
     const args: any[] = [this.uuid, 'pause'];
 
     if (arguments.length === 1) {
@@ -1170,20 +1246,24 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  forkAudioResume(bugname?: any, callback?: any): Promise<any> | this {
+  forkAudioResume(): Promise<EslEvent>;
+  forkAudioResume(bugname: any): Promise<EslEvent>;
+  forkAudioResume(callback: Endpoint.OperationCallback): this;
+  forkAudioResume(bugname: any, callback: Endpoint.OperationCallback): this;
+  forkAudioResume(bugname?: any, callback?: any): Promise<EslEvent> | this {
     const args: any[] = [this.uuid, 'resume'];
     if (arguments.length === 1) {
       if (typeof bugname === 'function') {
@@ -1203,35 +1283,45 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  mute(callback?: Endpoint.OperationCallback): Promise<any> | this {
+  mute(): Promise<EslEvent>;
+  mute(callback: Endpoint.OperationCallback): this;
+  mute(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     this._muted = true;
-    return this.execute('set_mute', 'read true', callback) as any;
+    return this.execute('set_mute', 'read true', callback as any) as any;
   }
 
-  unmute(callback?: Endpoint.OperationCallback): Promise<any> | this {
+  unmute(): Promise<EslEvent>;
+  unmute(callback: Endpoint.OperationCallback): this;
+  unmute(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     this._muted = false;
-    return this.execute('set_mute', 'read false', callback) as any;
+    return this.execute('set_mute', 'read false', callback as any) as any;
   }
 
-  toggleMute(callback?: Endpoint.OperationCallback): Promise<any> | this {
+  toggleMute(): Promise<EslEvent>;
+  toggleMute(callback: Endpoint.OperationCallback): this;
+  toggleMute(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     this._muted = !this._muted;
-    return this.execute('set_mute', `read ${this._muted ? 'true' : 'false'}`, callback) as any;
+    return this.execute('set_mute', `read ${this._muted ? 'true' : 'false'}`, callback as any) as any;
   }
 
-  api(command: string, args?: string | string[] | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  api(command: string): Promise<EslEvent>;
+  api(command: string, args: string | string[]): Promise<EslEvent>;
+  api(command: string, callback: Endpoint.OperationCallback): this;
+  api(command: string, args: string | string[], callback: Endpoint.OperationCallback): this;
+  api(command: string, args?: string | string[] | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof args === 'function') {
       callback = args;
       args = [];
@@ -1246,8 +1336,8 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
@@ -1259,7 +1349,11 @@ class Endpoint extends EventEmitter {
     });
   }
 
-  execute(app: string, arg?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  execute(app: string): Promise<EslEvent>;
+  execute(app: string, arg: string): Promise<EslEvent>;
+  execute(app: string, callback: Endpoint.OperationCallback): this;
+  execute(app: string, arg: string, callback: Endpoint.OperationCallback): this;
+  execute(app: string, arg?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof arg === 'function') {
       callback = arg;
       arg = '';
@@ -1273,8 +1367,8 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
@@ -1287,7 +1381,7 @@ class Endpoint extends EventEmitter {
   }
 
   executeAsync(app: string, arg: string, callback?: any) {
-    return this._conn?.execute(app, arg, callback);
+    return this._conn?.execute(app, arg, callback as any);
   }
 
   modify(newSdp: string) {
@@ -1295,7 +1389,7 @@ class Endpoint extends EventEmitter {
     return this._dialog?.modify(newSdp)
       .then((res: any) => {
         result = res;
-        return this.getChannelVariables(true);
+        return this.getChannelVariables(true) as Promise<Record<string, string>>;
       })
       .then((obj: any) => {
         this.local.sdp = obj['variable_rtp_local_sdp_str'];
@@ -1312,7 +1406,11 @@ class Endpoint extends EventEmitter {
       });
   }
 
-  destroy(callback?: Endpoint.OperationCallback): Promise<any> | this {
+  destroy(): Promise<void>;
+  destroy(callback: Endpoint.OperationCallback): this;
+  destroy(): Promise<void>;
+  destroy(callback: Endpoint.OperationCallback): this;
+  destroy(callback?: Endpoint.OperationCallback): Promise<void> | this {
     const __x = (cb: Endpoint.OperationCallback) => {
       if (State.CONNECTED !== this.state) {
         return cb(null);
@@ -1339,24 +1437,26 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  recordSession(...args: any[]): Promise<any> | this {
+  recordSession(...args: any[]): Promise<EslEvent>;
+  recordSession(...args: any[]): Promise<EslEvent> | this {
     return this._endpointApps('record_session', ...args);
   }
 
-  private _endpointApps(app: string, ...args: any[]): Promise<any> | this {
+  private _endpointApps(app: string, ...args: any[]): Promise<EslEvent>;
+  private _endpointApps(app: string, ...args: any[]): Promise<EslEvent> | this {
     const len = args.length;
     let argList = args;
     let callback: any = null;
@@ -1369,20 +1469,24 @@ class Endpoint extends EventEmitter {
       this.execute(app, argList.join(' '), cb);
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  record(file: string, opts?: Endpoint.RecordOptions | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  record(file: string): Promise<EslEvent>;
+  record(file: string, opts: Endpoint.RecordOptions): Promise<EslEvent>;
+  record(file: string, callback: Endpoint.OperationCallback): this;
+  record(file: string, opts: Endpoint.RecordOptions, callback: Endpoint.OperationCallback): this;
+  record(file: string, opts?: Endpoint.RecordOptions | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof opts === 'function') {
       callback = opts;
       opts = {};
@@ -1414,21 +1518,25 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
   // conference member operations
-  private _confOp(op: string, args?: string | string[] | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  private _confOp(op: string): Promise<EslEvent>;
+  private _confOp(op: string, args: string | string[]): Promise<EslEvent>;
+  private _confOp(op: string, callback: Endpoint.OperationCallback): this;
+  private _confOp(op: string, args: string | string[], callback: Endpoint.OperationCallback): this;
+  private _confOp(op: string, args?: string | string[] | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     if (typeof args === 'function') {
       callback = args;
       args = '';
@@ -1449,34 +1557,38 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }
 
-  confMute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('mute', args, callback); }
-  confUnmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('unmute', args, callback); }
-  confDeaf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('deaf', args, callback); }
-  confUndeaf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('undeaf', args, callback); }
-  confKick(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('kick', args, callback); }
-  confHup(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('hup', args, callback); }
-  unjoin(args?: any, callback?: Endpoint.OperationCallback) { return this.confKick(args, callback); }
-  confTmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('tmute', args, callback); }
-  confVmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('vmute', args, callback); }
-  confUnvmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('unvmute', args, callback); }
-  confVmuteSnap(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('vmute-snap', args, callback); }
-  confSaymember(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('saymember', args, callback); }
-  confDtmf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('dtmf', args, callback); }
+  confMute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('mute', args, callback as any); }
+  confUnmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('unmute', args, callback as any); }
+  confDeaf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('deaf', args, callback as any); }
+  confUndeaf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('undeaf', args, callback as any); }
+  confKick(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('kick', args, callback as any); }
+  confHup(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('hup', args, callback as any); }
+  unjoin(args?: any, callback?: Endpoint.OperationCallback) { return this.confKick(args, callback as any); }
+  confTmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('tmute', args, callback as any); }
+  confVmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('vmute', args, callback as any); }
+  confUnvmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('unvmute', args, callback as any); }
+  confVmuteSnap(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('vmute-snap', args, callback as any); }
+  confSaymember(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('saymember', args, callback as any); }
+  confDtmf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('dtmf', args, callback as any); }
 
-  confPlay(file: string, opts?: any | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  confPlay(file: string): Promise<EslEvent>;
+  confPlay(file: string, opts: any): Promise<EslEvent>;
+  confPlay(file: string, callback: Endpoint.OperationCallback): this;
+  confPlay(file: string, opts: any, callback: Endpoint.OperationCallback): this;
+  confPlay(file: string, opts?: any | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     debug(`Endpoint#confPlay endpoint ${this.uuid} memberId ${this.conf.memberId}`);
     assert.ok(typeof file === 'string', "'file' is required and must be a file to play");
 
@@ -1504,20 +1616,22 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, results) => {
         if (err) return reject(err);
-        resolve(results);
+        resolve(results as any);
       });
     });
   }
 
-  transfer(newConf: string | Conference, callback?: Endpoint.OperationCallback): Promise<any> | this {
+  transfer(newConf: string | Conference): Promise<EslEvent>;
+  transfer(newConf: string | Conference, callback: Endpoint.OperationCallback): this;
+  transfer(newConf: string | Conference, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
     const confName = newConf instanceof Conference ? newConf.name : newConf;
     assert.ok(typeof confName === 'string', "'newConf' is required");
 
@@ -1532,15 +1646,15 @@ class Endpoint extends EventEmitter {
       });
     };
 
-    if (callback) {
-      __x(callback);
+    if (callback as any) {
+      __x(callback as any);
       return this;
     }
 
     return new Promise((resolve, reject) => {
       __x((err, result) => {
         if (err) return reject(err);
-        resolve(result);
+        resolve(result as any);
       });
     });
   }

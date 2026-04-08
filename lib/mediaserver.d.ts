@@ -153,21 +153,38 @@ declare class MediaServer extends EventEmitter {
     hasCapability(capability: string | string[]): boolean;
     api(command: string): Promise<string>;
     api(command: string, callback: MediaServer.ApiCallback): this;
+    api(command: string): Promise<string>;
+    api(command: string, callback: MediaServer.ApiCallback): this;
     createEndpoint(opts?: MediaServer.EndpointOptions): Promise<Endpoint>;
     createEndpoint(opts: MediaServer.EndpointOptions, callback: MediaServer.CreateEndpointCallback): this;
     createEndpoint(callback: MediaServer.CreateEndpointCallback): this;
+    createEndpoint(): Promise<Endpoint>;
+    createEndpoint(opts: MediaServer.EndpointOptions): Promise<Endpoint>;
+    createEndpoint(callback: MediaServer.CreateEndpointCallback): this;
+    createEndpoint(opts: MediaServer.EndpointOptions, callback: MediaServer.CreateEndpointCallback): this;
     connectCaller(req: SrfRequest, res: SrfResponse, opts?: MediaServer.EndpointOptions): Promise<{
         endpoint: Endpoint;
         dialog: SrfDialog;
     }>;
     connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
     connectCaller(req: SrfRequest, res: SrfResponse, callback: MediaServer.ConnectCallerCallback): this;
+    connectCaller(req: SrfRequest, res: SrfResponse): Promise<{
+        endpoint: Endpoint;
+        dialog: SrfDialog;
+    }>;
+    connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions): Promise<{
+        endpoint: Endpoint;
+        dialog: SrfDialog;
+    }>;
+    connectCaller(req: SrfRequest, res: SrfResponse, callback: MediaServer.ConnectCallerCallback): this;
+    connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
     createConference(name: string, opts?: MediaServer.ConferenceCreateOptions): Promise<Conference>;
     createConference(opts?: MediaServer.ConferenceCreateOptions): Promise<Conference>;
     createConference(name: string, opts: MediaServer.ConferenceCreateOptions, callback: MediaServer.CreateConferenceCallback): this;
     createConference(opts: MediaServer.ConferenceCreateOptions, callback: MediaServer.CreateConferenceCallback): this;
     createConference(name: string, callback: MediaServer.CreateConferenceCallback): this;
     createConference(callback: MediaServer.CreateConferenceCallback): this;
+    createConference(...args: any[]): Promise<Conference>;
     toJSON(): Partial<this>;
     private _onError;
     private _onHeartbeat;
