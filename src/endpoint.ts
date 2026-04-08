@@ -30,42 +30,71 @@ const EVENTS_OF_INTEREST = [
 ];
 
 namespace Endpoint {
+  /** Options used when creating a new Endpoint. */
   export interface CreateOptions {
+    /** Directory for debug logs/captures. */
     debugDir?: string;
+    /** Single codec or array of codecs to restrict the media negotiation. */
     codecs?: string | string[];
+    /** Set to true if creating an endpoint for Third-Party Call Control (3PCC). */
     is3pcc?: boolean;
+    /** Array of custom FreeSWITCH events to subscribe to. */
     customEvents?: string[];
+    /** Additional custom options. */
     [key: string]: unknown;
   }
 
+  /** Options for playing a file to an endpoint. */
   export interface PlaybackOptions {
+    /** The path or URI of the file to play. */
     file: string;
+    /** Offset in samples/ms to seek into the file before playing. */
     seekOffset?: number;
+    /** Maximum duration in seconds to play the file. */
     timeoutSecs?: number;
   }
 
+  /** Options for playing a file and collecting DTMF digits. */
   export interface PlayCollectOptions {
+    /** The path or URI of the file to play. */
     file: string;
+    /** Minimum number of digits to collect (default: 0). */
     min?: number;
+    /** Maximum number of digits to collect (default: 128). */
     max?: number;
+    /** Number of attempts to play the file (default: 1). */
     tries?: number;
+    /** File to play if invalid digits are entered. */
     invalidFile?: string;
+    /** Overall timeout in milliseconds (default: 120000). */
     timeout?: number;
+    /** String of terminator keys (e.g. '#*'). Default is '#'. */
     terminators?: string;
+    /** Variable name to store the collected digits in FreeSWITCH. */
     varName?: string;
+    /** Regular expression to validate collected digits. */
     regexp?: string;
+    /** Inter-digit timeout in milliseconds. */
     digitTimeout?: number;
   }
 
+  /** Options for recording a session. */
   export interface RecordOptions {
+    /** Maximum duration of the recording in seconds. */
     timeLimitSecs?: number;
+    /** Silence threshold to trigger silence detection. */
     silenceThresh?: number;
+    /** Number of silence hits before terminating the recording. */
     silenceHits?: number;
   }
 
+  /** Options for joining a conference. */
   export interface ConfJoinOptions {
+    /** PIN code required to join. */
     pin?: string;
+    /** Conference profile to use. */
     profile?: string;
+    /** Flags to configure the member's capabilities in the conference. */
     flags?: {
       mute?: boolean;
       deaf?: boolean;
@@ -92,7 +121,10 @@ namespace Endpoint {
     };
   }
 
+  /** Generic callback signature for Endpoint operations. */
   export type OperationCallback = (err: Error | null, ...results: any[]) => void;
+  
+  /** Results returned from a playback or playCollect operation. */
   export interface PlaybackResults {
     seconds?: number;
     milliseconds?: number;
@@ -106,20 +138,27 @@ namespace Endpoint {
     playbackLastOffsetPos?: string;
     done?: (...args: any[]) => void;
   }
+  
+  /** Callback signature for playback operations. */
   export type PlayOperationCallback = (err: Error | null, results?: PlaybackResults) => void;
 }
 
 namespace Endpoint {
   export interface Events {
-
+    /** Emitted when the endpoint is fully connected and ready for commands. */
     'ready': () => void;
+    /** Emitted when a DTMF digit is detected. */
     'dtmf': (args: { dtmf: string; duration: string; source: string; ssrc?: string; timestamp?: string }) => void;
+    /** Emitted when a specific tone (like fax) is detected. */
     'tone': (args: { tone: string }) => void;
+    /** Emitted when playback starts on the endpoint. */
     'playback-start': (opts: any) => void;
+    /** Emitted when playback stops on the endpoint. */
     'playback-stop': (opts: any) => void;
+    /** Emitted when the call state changes. */
     'channelCallState': (args: { state: string }) => void;
+    /** Emitted when the endpoint is destroyed or hung up. */
     'destroy': (args?: { reason?: string }) => void;
-
   }
 }
 
@@ -136,50 +175,46 @@ declare interface Endpoint {
   emit<U extends keyof Endpoint.Events>(event: U, ...args: Parameters<Endpoint.Events[U]>): boolean;
   emit(event: string | symbol, ...args: any[]): boolean;
 }
-namespace Endpoint {
-  export interface Events {
 
-    'ready': () => void;
-    'dtmf': (args: { dtmf: string; duration: string; source: string; ssrc?: string; timestamp?: string }) => void;
-    'tone': (args: { tone: string }) => void;
-    'playback-start': (opts: any) => void;
-    'playback-stop': (opts: any) => void;
-    'channelCallState': (args: { state: string }) => void;
-    'destroy': (args?: { reason?: string }) => void;
-
-  }
-}
-
-declare interface Endpoint {
-  on<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
-  on(event: string | symbol, listener: (...args: any[]) => void): this;
-
-  once<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
-  once(event: string | symbol, listener: (...args: any[]) => void): this;
-
-  off<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
-  off(event: string | symbol, listener: (...args: any[]) => void): this;
-
-  emit<U extends keyof Endpoint.Events>(event: U, ...args: Parameters<Endpoint.Events[U]>): boolean;
-  emit(event: string | symbol, ...args: any[]): boolean;
-}
+/**
+ * Represents a SIP media leg on the FreeSWITCH media server.
+ * Enables media control operations such as playing files, collecting DTMF,
+ * recording, joining conferences, and bridging to other endpoints.
+ */
 class Endpoint extends EventEmitter {
   private _customEvents: string[];
   private _conn: EslConnection | null;
   private _ms: MediaServer;
   private _dialog: SrfDialog | null;
+  
+  /** The unique channel ID assigned by FreeSWITCH for this endpoint. */
   public uuid: string;
+  /** Indicates if the endpoint is using secure media (SRTP). */
   public secure: boolean;
+  
+  /** Local connection details (SDP, IP, Port). */
   public local: { sdp?: string; mediaIp?: string; mediaPort?: string };
+  /** Remote connection details (SDP, IP, Port). */
   public remote: { sdp?: string; mediaIp?: string; mediaPort?: string };
+  /** SIP specific attributes. */
   public sip: { callId?: string };
+  /** Conference details if the endpoint is joined to a conference. */
   public conf: { memberId?: number; name?: string; uuid?: string };
+  
+  /** The connection state of the endpoint. */
   public state: State;
   private _muted: boolean;
   private _ready: boolean = false;
   private _joinCallback?: (memberId: number, confUuid: string) => void;
+  
+  /** The DTMF payload type negotiated via SDP. */
   public dtmfType?: string;
 
+  /**
+   * Internal constructor for Endpoint.
+   * Do not instantiate this directly; instead, use `MediaServer#createEndpoint()`.
+   * @internal
+   */
   constructor(conn: EslConnection, dialog: SrfDialog, ms: MediaServer, opts?: Endpoint.CreateOptions) {
     super();
 
@@ -252,42 +287,52 @@ class Endpoint extends EventEmitter {
     this._emitReady();
   }
 
+  /** Gets the MediaServer instance this endpoint is connected to. */
   get mediaserver(): MediaServer {
     return this._ms;
   }
 
+  /** Gets the MediaServer instance this endpoint is connected to. */
   get ms(): MediaServer {
     return this._ms;
   }
 
+  /** Gets the underlying drachtio-srf instance. */
   get srf(): Srf {
     return this.ms.srf;
   }
 
+  /** Gets the underlying FreeSWITCH Event Socket Connection for this endpoint. */
   get conn(): EslConnection {
     return this._conn as EslConnection;
   }
 
+  /** Gets the associated SIP Dialog from drachtio-srf. */
   get dialog(): SrfDialog {
     return this._dialog as SrfDialog;
   }
 
+  /** Sets the SIP Dialog for this endpoint. */
   set dialog(dlg: any) {
     this._dialog = dlg;
   }
 
+  /** Indicates whether the endpoint is currently connected. */
   get connected(): boolean {
     return this.state === State.CONNECTED;
   }
 
+  /** Indicates whether the endpoint is currently muted. */
   get muted(): boolean {
     return this._muted;
   }
 
+  /** Applies an event filter on the FreeSWITCH event socket. */
   filter(header: string, value: string) {
     if (this._conn) this._conn.filter(header, value);
   }
 
+  /** Forwards an in-dialog SIP request. */
   request(opts: any) {
     if (this._dialog) return this._dialog.request(opts);
   }
@@ -336,6 +381,12 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Sets one or more channel variables on the endpoint.
+   * 
+   * @param param - A string variable name or an object of key-value pairs.
+   * @param value - The value to set (if `param` is a string).
+   */
   set(param: string | object): Promise<EslEvent>;
   set(param: string | object, value: string): Promise<EslEvent>;
   set(param: string | object, callback: Endpoint.OperationCallback): this;
@@ -348,6 +399,12 @@ class Endpoint extends EventEmitter {
     return this._setOrExport('set', param, value as string, callback as any) as any;
   }
 
+  /**
+   * Exports one or more channel variables to the endpoint (so they apply to bridged channels).
+   * 
+   * @param param - A string variable name or an object of key-value pairs.
+   * @param value - The value to export (if `param` is a string).
+   */
   export(param: string | object): Promise<EslEvent>;
   export(param: string | object, value: string): Promise<EslEvent>;
   export(param: string | object, callback: Endpoint.OperationCallback): this;
@@ -360,11 +417,18 @@ class Endpoint extends EventEmitter {
     return this._setOrExport('export', param, value as string, callback as any) as any;
   }
 
+  /** Resets custom event listeners on the Event Socket connection. */
   resetEslCustomEvent() {
     this.conn.removeAllListeners('esl::event::CUSTOM::*');
     this.conn.on(`esl::event::CUSTOM::${this.uuid}`, this._onCustomEvent.bind(this));
   }
 
+  /**
+   * Adds a custom FreeSWITCH event listener.
+   * 
+   * @param event - The custom event subclass name (without the "CUSTOM " prefix).
+   * @param handler - The function to call when the event occurs.
+   */
   addCustomEventListener(event: string, handler: (...args: any[]) => void) {
     assert.ok(typeof event === 'string', 'event name must be string type');
     assert.ok(typeof handler === 'function', 'handler must be a function type');
@@ -379,6 +443,12 @@ class Endpoint extends EventEmitter {
     this.on(event, handler);
   }
 
+  /**
+   * Removes a custom FreeSWITCH event listener.
+   * 
+   * @param event - The custom event subclass name.
+   * @param handler - The specific handler to remove (optional).
+   */
   removeCustomEventListener(event: string, handler?: (...args: any[]) => void) {
     let del = false;
     if (handler) {
@@ -393,6 +463,12 @@ class Endpoint extends EventEmitter {
     if (-1 !== idx && del) this._customEvents.splice(idx, 1);
   }
 
+  /**
+   * Retrieves all channel variables for this endpoint.
+   * 
+   * @param includeMedia - Whether to include media stats (e.g. `uuid_set_media_stats`).
+   * @returns A Promise resolving to an object containing all variables.
+   */
   getChannelVariables(): Promise<Record<string, string>>;
   getChannelVariables(includeMedia: boolean): Promise<Record<string, string>>;
   getChannelVariables(callback: Endpoint.OperationCallback): this;
@@ -452,6 +528,12 @@ class Endpoint extends EventEmitter {
     }
   }
 
+  /**
+   * Plays an audio or video file to the endpoint.
+   * 
+   * @param file - File path, array of file paths, or PlaybackOptions object.
+   * @returns A Promise resolving to playback metrics (duration, completion status).
+   */
   play(file: string | string[] | Endpoint.PlaybackOptions): Promise<Endpoint.PlaybackResults>;
   play(file: string | string[] | Endpoint.PlaybackOptions, callback: Endpoint.PlayOperationCallback): this;
   play(file: string | string[] | Endpoint.PlaybackOptions, callback?: Endpoint.PlayOperationCallback): Promise<Endpoint.PlaybackResults> | this {
@@ -499,6 +581,12 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Plays a file while collecting DTMF digits.
+   * 
+   * @param opts - Options for playback and DTMF collection constraints.
+   * @returns A Promise resolving to the digits collected and playback results.
+   */
   playCollect(opts: Endpoint.PlayCollectOptions): Promise<Endpoint.PlaybackResults>;
   playCollect(opts: Endpoint.PlayCollectOptions, callback: Endpoint.PlayOperationCallback): this;
   playCollect(opts: Endpoint.PlayCollectOptions, callback?: Endpoint.PlayOperationCallback): Promise<Endpoint.PlaybackResults> | this {
@@ -547,6 +635,12 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Speaks text using a TTS engine via the FreeSWITCH `say` application.
+   * 
+   * @param text - The text string to say.
+   * @param opts - Options including language, sayType, and sayMethod.
+   */
   say(text: string, opts: any): Promise<Endpoint.PlaybackResults>;
   say(text: string, opts: any, callback: Endpoint.PlayOperationCallback): this;
   say(text: string, opts: any, callback?: Endpoint.PlayOperationCallback): Promise<Endpoint.PlaybackResults> | this {
@@ -592,6 +686,11 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Speaks text using a TTS engine via the FreeSWITCH `speak` application.
+   * 
+   * @param opts - Options dictating ttsEngine, voice, and text.
+   */
   speak(opts: any): Promise<Endpoint.PlaybackResults>;
   speak(opts: any, callback: Endpoint.OperationCallback): this;
   speak(opts: any, callback?: Endpoint.OperationCallback): Promise<Endpoint.PlaybackResults> | this {
@@ -623,11 +722,18 @@ class Endpoint extends EventEmitter {
     });
   }
 
-  join(conf: string | Conference): Promise<{ confUuid: string }>;
-  join(conf: string | Conference, opts: Endpoint.ConfJoinOptions): Promise<{ confUuid: string }>;
+  /**
+   * Joins the endpoint to a conference room.
+   * 
+   * @param conf - A Conference instance or the string name of the conference.
+   * @param opts - Additional join options (e.g. flags, pin).
+   * @returns A Promise resolving to an object containing `confUuid` and the endpoint's `memberId`.
+   */
+  join(conf: string | Conference): Promise<{ confUuid: string; memberId?: number }>;
+  join(conf: string | Conference, opts: Endpoint.ConfJoinOptions): Promise<{ confUuid: string; memberId?: number }>;
   join(conf: string | Conference, callback: Endpoint.OperationCallback): this;
   join(conf: string | Conference, opts: Endpoint.ConfJoinOptions, callback: Endpoint.OperationCallback): this;
-  join(conf: string | Conference, opts?: Endpoint.ConfJoinOptions | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<{ confUuid: string }> | this {
+  join(conf: string | Conference, opts?: Endpoint.ConfJoinOptions | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<{ confUuid: string; memberId?: number }> | this {
     const confName = typeof conf === 'string' ? conf : conf.name;
     if (typeof opts === 'function') {
       callback = opts;
@@ -683,6 +789,11 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Bridges this endpoint with another endpoint for direct peer-to-peer media sharing.
+   * 
+   * @param other - The other Endpoint or its UUID string.
+   */
   bridge(other: string | Endpoint): Promise<EslEvent>;
   bridge(other: string | Endpoint, callback: Endpoint.OperationCallback): this;
   bridge(other: string | Endpoint, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -711,6 +822,9 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Unbridges this endpoint if it is currently bridged with another endpoint.
+   */
   unbridge(): Promise<EslEvent>;
   unbridge(callback: Endpoint.OperationCallback): this;
   unbridge(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -738,6 +852,9 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Gets participants in a conference that do not match a given tag.
+   */
   getNonMatchingConfParticipants(confName: string, tag: string): Promise<EslEvent>;
   getNonMatchingConfParticipants(confName: string, tag: string, callback: Endpoint.OperationCallback): this;
   getNonMatchingConfParticipants(confName: string, tag: string, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -765,6 +882,10 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Adjusts the read gain (volume) for this endpoint.
+   * @param opts - Either the numeric gain level or string representing gain (+/- dB).
+   */
   setGain(opts: any): Promise<EslEvent>;
   setGain(opts: any, callback: Endpoint.OperationCallback): this;
   setGain(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -793,6 +914,9 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Executes a media dubbing operation on a specific track for this endpoint.
+   */
   dub(opts: any): Promise<EslEvent>;
   dub(opts: any, callback: Endpoint.OperationCallback): this;
   dub(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -835,6 +959,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Starts transcription via an integrated engine (e.g. Google, AWS, Nuance). */
   startTranscription(opts: any): Promise<EslEvent>;
   startTranscription(opts: any, callback: Endpoint.OperationCallback): this;
   startTranscription(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -889,6 +1014,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Starts transcription timers. */
   startTranscriptionTimers(opts: any): Promise<EslEvent>;
   startTranscriptionTimers(opts: any, callback: Endpoint.OperationCallback): this;
   startTranscriptionTimers(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -927,6 +1053,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Stops an active transcription process. */
   stopTranscription(opts: any): Promise<EslEvent>;
   stopTranscription(opts: any, callback: Endpoint.OperationCallback): this;
   stopTranscription(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -969,6 +1096,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Starts Voice Activity Detection (VAD). */
   startVadDetection(opts: any): Promise<EslEvent>;
   startVadDetection(opts: any, callback: Endpoint.OperationCallback): this;
   startVadDetection(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1008,6 +1136,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Stops Voice Activity Detection (VAD). */
   stopVadDetection(opts: any): Promise<EslEvent>;
   stopVadDetection(opts: any, callback: Endpoint.OperationCallback): this;
   stopVadDetection(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1039,6 +1168,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Starts audio forking to a WebSocket URL. */
   forkAudioStart(opts: any): Promise<EslEvent>;
   forkAudioStart(opts: any, callback: Endpoint.OperationCallback): this;
   forkAudioStart(opts: any, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1080,6 +1210,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Sends text metadata through an active audio fork. */
   forkAudioSendText(bugname: any): Promise<EslEvent>;
   forkAudioSendText(bugname: any, metadata: any): Promise<EslEvent>;
   forkAudioSendText(callback: Endpoint.OperationCallback): this;
@@ -1139,6 +1270,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Stops an active audio fork. */
   forkAudioStop(): Promise<EslEvent>;
   forkAudioStop(bugname: any): Promise<EslEvent>;
   forkAudioStop(bugname: any, metadata: any): Promise<EslEvent>;
@@ -1200,6 +1332,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Pauses an active audio fork. */
   forkAudioPause(): Promise<EslEvent>;
   forkAudioPause(bugname: any): Promise<EslEvent>;
   forkAudioPause(bugname: any, silence: any): Promise<EslEvent>;
@@ -1259,6 +1392,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Resumes a paused audio fork. */
   forkAudioResume(): Promise<EslEvent>;
   forkAudioResume(bugname: any): Promise<EslEvent>;
   forkAudioResume(callback: Endpoint.OperationCallback): this;
@@ -1296,6 +1430,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Mutes media flowing from the endpoint. */
   mute(): Promise<EslEvent>;
   mute(callback: Endpoint.OperationCallback): this;
   mute(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1303,6 +1438,7 @@ class Endpoint extends EventEmitter {
     return this.execute('set_mute', 'read true', callback as any) as any;
   }
 
+  /** Unmutes media flowing from the endpoint. */
   unmute(): Promise<EslEvent>;
   unmute(callback: Endpoint.OperationCallback): this;
   unmute(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1310,6 +1446,7 @@ class Endpoint extends EventEmitter {
     return this.execute('set_mute', 'read false', callback as any) as any;
   }
 
+  /** Toggles the mute state of the endpoint. */
   toggleMute(): Promise<EslEvent>;
   toggleMute(callback: Endpoint.OperationCallback): this;
   toggleMute(callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1317,6 +1454,7 @@ class Endpoint extends EventEmitter {
     return this.execute('set_mute', `read ${this._muted ? 'true' : 'false'}`, callback as any) as any;
   }
 
+  /** Executes a FreeSWITCH API command specifically applied to this endpoint. */
   api(command: string): Promise<EslEvent>;
   api(command: string, args: string | string[]): Promise<EslEvent>;
   api(command: string, callback: Endpoint.OperationCallback): this;
@@ -1349,6 +1487,11 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Executes a dialplan application on this endpoint.
+   * @param app - The application to execute (e.g., 'playback', 'record').
+   * @param arg - The arguments for the application.
+   */
   execute(app: string): Promise<EslEvent>;
   execute(app: string, arg: string): Promise<EslEvent>;
   execute(app: string, callback: Endpoint.OperationCallback): this;
@@ -1380,10 +1523,17 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Executes a dialplan application asynchronously on this endpoint.
+   */
   executeAsync(app: string, arg: string, callback?: any) {
     return this._conn?.execute(app, arg, callback as any);
   }
 
+  /**
+   * Modifies the session using a new SDP.
+   * @param newSdp - The updated Session Description Protocol string.
+   */
   modify(newSdp: string) {
     let result: any;
     return this._dialog?.modify(newSdp)
@@ -1406,6 +1556,9 @@ class Endpoint extends EventEmitter {
       });
   }
 
+  /**
+   * Disconnects the endpoint, terminating the SIP call and FreeSWITCH channel.
+   */
   destroy(): Promise<void>;
   destroy(callback: Endpoint.OperationCallback): this;
   destroy(): Promise<void>;
@@ -1450,6 +1603,9 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Executes the `record_session` dialplan application.
+   */
   recordSession(...args: any[]): Promise<EslEvent>;
   recordSession(...args: any[]): Promise<EslEvent> | this {
     return this._endpointApps('record_session', ...args);
@@ -1482,6 +1638,11 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Records audio from the endpoint to a file.
+   * @param file - The destination file path.
+   * @param opts - Options such as time limits or silence detection.
+   */
   record(file: string): Promise<EslEvent>;
   record(file: string, opts: Endpoint.RecordOptions): Promise<EslEvent>;
   record(file: string, callback: Endpoint.OperationCallback): this;
@@ -1570,20 +1731,38 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /** Mutes this endpoint within its active conference. */
   confMute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('mute', args, callback as any); }
+  /** Unmutes this endpoint within its active conference. */
   confUnmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('unmute', args, callback as any); }
+  /** Deafens this endpoint within its active conference. */
   confDeaf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('deaf', args, callback as any); }
+  /** Undeafens this endpoint within its active conference. */
   confUndeaf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('undeaf', args, callback as any); }
+  /** Kicks this endpoint from the conference. */
   confKick(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('kick', args, callback as any); }
+  /** Hangs up this endpoint from the conference. */
   confHup(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('hup', args, callback as any); }
+  /** Leaves the conference without hanging up the call. */
   unjoin(args?: any, callback?: Endpoint.OperationCallback) { return this.confKick(args, callback as any); }
+  /** Toggles mute for this endpoint within its active conference. */
   confTmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('tmute', args, callback as any); }
+  /** Video mutes this endpoint within its active conference. */
   confVmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('vmute', args, callback as any); }
+  /** Video unmutes this endpoint within its active conference. */
   confUnvmute(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('unvmute', args, callback as any); }
+  /** Video snap mutes this endpoint within its active conference. */
   confVmuteSnap(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('vmute-snap', args, callback as any); }
+  /** Executes the `saymember` command on this endpoint in the conference. */
   confSaymember(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('saymember', args, callback as any); }
+  /** Sends DTMF from this endpoint to the conference. */
   confDtmf(args?: any, callback?: Endpoint.OperationCallback) { return this._confOp('dtmf', args, callback as any); }
 
+  /**
+   * Plays a file exclusively to this endpoint within a conference.
+   * @param file - The file to play.
+   * @param opts - Options such as volume (`vol`).
+   */
   confPlay(file: string): Promise<EslEvent>;
   confPlay(file: string, opts: any): Promise<EslEvent>;
   confPlay(file: string, callback: Endpoint.OperationCallback): this;
@@ -1629,6 +1808,10 @@ class Endpoint extends EventEmitter {
     });
   }
 
+  /**
+   * Transfers the endpoint to a different conference.
+   * @param newConf - The new Conference instance or its name.
+   */
   transfer(newConf: string | Conference): Promise<EslEvent>;
   transfer(newConf: string | Conference, callback: Endpoint.OperationCallback): this;
   transfer(newConf: string | Conference, callback?: Endpoint.OperationCallback): Promise<EslEvent> | this {
@@ -1804,10 +1987,12 @@ class Endpoint extends EventEmitter {
     this.emit('destroy');
   }
 
+  /** Gets a JSON serializable representation of this endpoint. */
   toJSON() {
     return pick(this, 'sip local remote uuid');
   }
 
+  /** Serializes the endpoint JSON to a string. */
   toString(): string {
     return JSON.stringify(this.toJSON());
   }

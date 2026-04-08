@@ -15,38 +15,99 @@ namespace Mrf {
   export type Endpoint = import('./endpoint');
   export type MediaServer = import('./mediaserver');
   export type Conference = import('./conference');
+
+  /**
+   * Options for creating an MRF instance.
+   */
   export interface CreateOptions {
+    /** Directory to write debug SIP captures to. */
     debugDir?: string;
+    /** If true, sendonly SDP will be generated for debug purposes. */
     sendonly?: boolean;
+    /** Array of custom FreeSWITCH events to subscribe to. */
     customEvents?: string[];
   }
 
+  /**
+   * Options for connecting to a FreeSWITCH media server.
+   */
   export interface ConnectOptions {
+    /** The IP address or hostname of the FreeSWITCH Event Socket listener. */
     address: string;
+    /** The Event Socket listener port (default: 8021). */
     port?: number;
+    /** The Event Socket password (default: 'ClueCon'). */
     secret?: string;
+    /** Local IP address to listen on for inbound connections from FreeSWITCH (default: auto-detected). */
     listenAddress?: string;
+    /** Local port to listen on for inbound connections (default: 0 for random). */
     listenPort?: number;
+    /** Advertised IP address for the Event Socket outbound server (useful behind NAT). */
     advertisedAddress?: string;
+    /** Advertised port for the Event Socket outbound server. */
     advertisedPort?: number;
+    /** The FreeSWITCH SIP profile to use (default: 'drachtio_mrf'). */
     profile?: string;
   }
 
+  /**
+   * Callback signature for connecting to a media server.
+   */
   export type ConnectCallback = (err: Error | null, ms?: MediaServer) => void;
 }
 
+/**
+ * Creates an instance of the MRF (Media Resource Function) manager.
+ * This class coordinates with the drachtio-srf framework and manages
+ * connections to one or more FreeSWITCH media servers.
+ *
+ * @example
+ * ```typescript
+ * import Srf from 'drachtio-srf';
+ * import Mrf from 'drachtio-fsmrf';
+ * 
+ * const srf = new Srf();
+ * srf.connect({ host: '127.0.0.1', port: 9022, secret: 'cymru' });
+ * 
+ * const mrf = new Mrf(srf);
+ * 
+ * mrf.connect({
+ *   address: '127.0.0.1',
+ *   port: 8021,
+ *   secret: 'ClueCon'
+ * }).then((mediaserver) => {
+ *   console.log('successfully connected to media server');
+ * });
+ * ```
+ */
 class Mrf extends EventEmitter {
+  /** The Endpoint class exported for convenience. */
   static Endpoint = Endpoint;
+  /** The MediaServer class exported for convenience. */
   static MediaServer = MediaServer;
+  /** The Conference class exported for convenience. */
   static Conference = Conference;
+  
   private _srf: Srf;
+
+  /** Directory used for debugging. */
   public debugDir?: string;
+  /** Flag to indicate if sendonly mode is enabled for debugging. */
   public debugSendonly?: boolean;
+  /** List of automatically detected local IPv4 addresses. */
   public localAddresses: string[];
+  /** Array of custom events configured to be monitored. */
   public customEvents: string[];
 
+  /** Utility methods exposed by the MRF framework. */
   public static utils = { parseBodyText };
 
+  /**
+   * Initializes a new Mrf instance.
+   * 
+   * @param srf - The drachtio-srf instance
+   * @param opts - Configuration options for the MRF
+   */
   constructor(srf: Srf, opts?: Mrf.CreateOptions) {
     super();
 
@@ -71,11 +132,39 @@ class Mrf extends EventEmitter {
     }
   }
 
+  /**
+   * Returns the underlying drachtio-srf instance.
+   */
   get srf() {
     return this._srf;
   }
 
+  /**
+   * Connects to a FreeSWITCH media server using the provided options.
+   * Can be used with async/await (Promise) or with a callback.
+   * 
+   * @param opts - The connection options for the FreeSWITCH Event Socket
+   * @returns A Promise resolving to a MediaServer instance
+   * 
+   * @example
+   * ```typescript
+   * const ms = await mrf.connect({
+   *   address: '10.10.100.1',
+   *   port: 8021,
+   *   secret: 'ClueCon'
+   * });
+   * console.log('Media server is ready!');
+   * ```
+   */
   connect(opts: Mrf.ConnectOptions): Promise<MediaServer>;
+  
+  /**
+   * Connects to a FreeSWITCH media server using the provided options.
+   * 
+   * @param opts - The connection options for the FreeSWITCH Event Socket
+   * @param callback - The callback invoked when connection succeeds or fails
+   * @returns The Mrf instance for chaining
+   */
   connect(opts: Mrf.ConnectOptions, callback: Mrf.ConnectCallback): this;
   connect(opts: Mrf.ConnectOptions, callback?: Mrf.ConnectCallback): Promise<MediaServer> | this {
     assert.strictEqual(typeof opts, 'object', "argument 'opts' must be provided with connection options");
