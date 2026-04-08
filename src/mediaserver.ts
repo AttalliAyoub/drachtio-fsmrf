@@ -46,7 +46,7 @@ namespace MediaServer {
     srtp?: boolean;
     family?: 'ipv4' | 'ipv6';
     dtls?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export type CreateEndpointCallback = (err: Error | null, endpoint?: Endpoint) => void;

@@ -35,7 +35,7 @@ namespace Endpoint {
     codecs?: string | string[];
     is3pcc?: boolean;
     customEvents?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   }
 
   export interface PlaybackOptions {

@@ -137,9 +137,9 @@ class Conference extends EventEmitter {
   public state: State;
   public locked: boolean;
   public memberId: number;
-  public participants: Map<number, any>;
+  public participants: Map<number, Record<string, unknown>>;
   public maxMembers: number;
-  private _playCommands: Record<string, any[]>;
+  private _playCommands: Record<string, Array<{ remainingFiles: string[]; seconds: number; milliseconds: number; samples: number; done?: Conference.PlaybackCallback; }>>;
 
   constructor(name: string, uuid: string, endpoint: Endpoint, opts?: Conference.CreateOptions) {
     super();
@@ -546,7 +546,7 @@ class Conference extends EventEmitter {
       obj.samples += samples;
 
       if (obj.remainingFiles.length === 0) {
-        obj.done(null, {
+        if (obj.done) obj.done(null, {
           seconds: obj.seconds,
           milliseconds: obj.milliseconds,
           samples: obj.samples
