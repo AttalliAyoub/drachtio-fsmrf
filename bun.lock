@@ -222,7 +222,7 @@
 
     "drachtio-modesl": ["drachtio-modesl@2.0.1", "", { "dependencies": { "eventemitter2": "^6.4.4", "xml2js": "^0.6.2" } }, "sha512-NFcbDjrqV4nJwnItrH52t4w9shKiFQi1H/ByfQJfFicJjHlwsDMqWUUqFJ08XWo8G1Ee3q34J/ggsn1NSsCEAQ=="],
 
-    "drachtio-srf": ["drachtio-srf@github:AttalliAyoub/drachtio-srf#2e8e269", { "dependencies": { "debug": "^4.4.3", "delegates": "^1.0.0", "node-noop": "^1.0.0", "only": "^0.0.2", "sdp-transform": "^2.15.0", "short-uuid": "^5.2.0", "sip-methods": "^0.3.0", "sip-status": "^0.1.0", "utils-merge": "^1.0.1", "uuid-random": "^1.3.2" } }, "AttalliAyoub-drachtio-srf-2e8e269", "sha512-WHfoNM3c7TSjQ/+z0TtjTWH9w0+O7e6f0iHC6aplT1t/uQYsckxYPzJpyU/+xV0pR6qD31b3kxa9mO/wR92ihw=="],
+    "drachtio-srf": ["drachtio-srf@github:AttalliAyoub/drachtio-srf#7e066cf", { "dependencies": { "debug": "^4.4.3", "delegates": "^1.0.0", "only": "^0.0.2", "sdp-transform": "^2.15.0", "short-uuid": "^5.2.0", "sip-methods": "^0.3.0", "sip-status": "^0.1.0", "utils-merge": "^1.0.1", "uuid-random": "^1.3.2" } }, "AttalliAyoub-drachtio-srf-7e066cf", "sha512-v6PZc9+/Ccz6sDX85m7EcpJXU15l7w1fK9tqL5AZQj6jXnkO7PKpBtc9v/GXH/xwvg9DrgTdSQFrFdG9ms7Aqg=="],
 
     "dunder-proto": ["dunder-proto@1.0.1", "", { "dependencies": { "call-bind-apply-helpers": "^1.0.1", "es-errors": "^1.3.0", "gopd": "^1.2.0" } }, "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A=="],
 
@@ -485,8 +485,6 @@
     "no-case": ["no-case@3.0.4", "", { "dependencies": { "lower-case": "^2.0.2", "tslib": "^2.0.3" } }, "sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg=="],
 
     "node-exports-info": ["node-exports-info@1.6.0", "", { "dependencies": { "array.prototype.flatmap": "^1.3.3", "es-errors": "^1.3.0", "object.entries": "^1.1.9", "semver": "^6.3.1" } }, "sha512-pyFS63ptit/P5WqUkt+UUfe+4oevH+bFeIiPPdfb0pFeYEu/1ELnJu5l+5EcTKYL5M7zaAa7S8ddywgXypqKCw=="],
-
-    "node-noop": ["node-noop@1.0.0", "", {}, "sha512-1lpWqKwZ9yUosQfW1uy3jm6St4ZbmeDKKGmdzwzedbyBI4LgHtGyL1ofDdqiSomgaYaSERi+qWtj64huJQjl7g=="],
 
     "node-preload": ["node-preload@0.2.1", "", { "dependencies": { "process-on-spawn": "^1.0.0" } }, "sha512-RM5oyBy45cLEoHqCeh+MNuFAxO0vTFBLskvQbOKnEE7YTTSN4tbN8QWDIPQ6L+WvKsB/qLEGpYe2ZZ9d4W9OIQ=="],
 
