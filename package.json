@@ -4,6 +4,20 @@
   "description": "freeswitch-based media resource function for drachtio",
   "main": "lib/mrf.js",
   "types": "lib/mrf.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/mrf.d.ts",
+      "default": "./lib/mrf.js"
+    },
+    "./lib/*": {
+      "types": "./lib/*.d.ts",
+      "default": "./lib/*.js"
+    },
+    "./*": {
+      "types": "./lib/*.d.ts",
+      "default": "./lib/*.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "pretest": "npm run build",

@@ -1,4 +1,6 @@
 import { EslConnection, EslEvent, EslServer, Srf, SrfDialog, SrfRequest, SrfResponse } from "./types";
+import Endpoint from './endpoint';
+import Conference from './conference';
 import esl from 'drachtio-modesl';
 import assert from 'assert';
 import MediaServer from './mediaserver';
@@ -10,6 +12,9 @@ import createDebug from 'debug';
 const debug = createDebug('drachtio:fsmrf');
 
 namespace Mrf {
+  export type Endpoint = import('./endpoint');
+  export type MediaServer = import('./mediaserver');
+  export type Conference = import('./conference');
   export interface CreateOptions {
     debugDir?: string;
     sendonly?: boolean;
@@ -31,6 +36,9 @@ namespace Mrf {
 }
 
 class Mrf extends EventEmitter {
+  static Endpoint = Endpoint;
+  static MediaServer = MediaServer;
+  static Conference = Conference;
   private _srf: Srf;
   public debugDir?: string;
   public debugSendonly?: boolean;

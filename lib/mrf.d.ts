@@ -1,7 +1,12 @@
 import { Srf } from "./types";
+import Endpoint from './endpoint';
+import Conference from './conference';
 import MediaServer from './mediaserver';
 import { EventEmitter } from 'events';
 declare namespace Mrf {
+    type Endpoint = import('./endpoint');
+    type MediaServer = import('./mediaserver');
+    type Conference = import('./conference');
     interface CreateOptions {
         debugDir?: string;
         sendonly?: boolean;
@@ -20,6 +25,9 @@ declare namespace Mrf {
     type ConnectCallback = (err: Error | null, ms?: MediaServer) => void;
 }
 declare class Mrf extends EventEmitter {
+    static Endpoint: typeof Endpoint;
+    static MediaServer: typeof MediaServer;
+    static Conference: typeof Conference;
     private _srf;
     debugDir?: string;
     debugSendonly?: boolean;
