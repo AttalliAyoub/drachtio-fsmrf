@@ -223,7 +223,7 @@ class Conference extends EventEmitter {
           if (/OK\s+/.test(body)) return cb(err, body);
           return cb(new Error(body));
         }
-        return cb(err);
+        return cb(err, body);
       });
     };
 
