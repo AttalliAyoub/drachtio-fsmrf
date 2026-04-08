@@ -91,7 +91,7 @@ declare class Conference extends EventEmitter {
     state: State;
     locked: boolean;
     memberId: number;
-    participants: Map<number, any>;
+    participants: Map<number, Record<string, unknown>>;
     maxMembers: number;
     private _playCommands;
     constructor(name: string, uuid: string, endpoint: Endpoint, opts?: Conference.CreateOptions);

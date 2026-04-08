@@ -29,7 +29,7 @@ declare namespace MediaServer {
         srtp?: boolean;
         family?: 'ipv4' | 'ipv6';
         dtls?: boolean;
-        [key: string]: any;
+        [key: string]: unknown;
     }
     type CreateEndpointCallback = (err: Error | null, endpoint?: Endpoint) => void;
     type CreateConferenceCallback = (err: Error | null, conference?: Conference) => void;
