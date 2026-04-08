@@ -39,3 +39,4 @@ test/recordings/*.raw
 
 CLAUDE.md
 .vscode
+.*/
