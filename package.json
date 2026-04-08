@@ -27,7 +27,7 @@
     "debug": "^4.4.0",
     "delegates": "^0.1.0",
     "drachtio-modesl": "^2.0.1",
-    "drachtio-srf": "^5.0.20",
+    "drachtio-srf": "AttalliAyoub/drachtio-srf",
     "sdp-transform": "^2.15.0",
     "snake-case": "^3.0.4"
   },

@@ -31,7 +31,7 @@ namespace Mrf {
 }
 
 class Mrf extends EventEmitter {
-  private _srf: InstanceType<typeof import('drachtio-srf')>;
+  private _srf: Srf;
   public debugDir?: string;
   public debugSendonly?: boolean;
   public localAddresses: string[];
@@ -39,7 +39,7 @@ class Mrf extends EventEmitter {
 
   public static utils = { parseBodyText };
 
-  constructor(srf: InstanceType<typeof import('drachtio-srf')>, opts?: Mrf.CreateOptions) {
+  constructor(srf: Srf, opts?: Mrf.CreateOptions) {
     super();
 
     opts = opts || {};

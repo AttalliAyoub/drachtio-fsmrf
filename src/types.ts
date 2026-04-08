@@ -1,5 +1,5 @@
-export { Srf, SrfDialog, SrfRequest, SrfResponse };
-import Srf, { SrfDialog, SrfRequest, SrfResponse } from 'drachtio-srf';
+export { Srf, Dialog as SrfDialog, SipRequest as SrfRequest, SipResponse as SrfResponse };
+import Srf, { Dialog, SipRequest, SipResponse } from 'drachtio-srf';
 
 export interface EslEvent {
   getHeader(name: string): string;

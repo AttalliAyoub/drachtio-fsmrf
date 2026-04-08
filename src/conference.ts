@@ -35,7 +35,7 @@ enum State {
   DESTROYED = 3
 }
 
-function unhandled(evt: any) {
+function unhandled(evt: EslEvent) {
   debug(`unhandled conference event: ${evt.getHeader('Action')}`);
 }
 
@@ -44,7 +44,7 @@ namespace Conference {
     maxMembers?: number;
   }
 
-  export type OperationCallback = (err: Error | null, response?: string | any) => void;
+  export type OperationCallback = (err: Error | null, response?: string | number) => void;
   export type PlaybackResults = {
     seconds: number;
     milliseconds: number;
@@ -56,24 +56,24 @@ namespace Conference {
 namespace Conference {
   export interface Events {
 
-    'addMember': (evt: any) => void;
-    'delMember': (evt: any) => void;
-    'startTalking': (evt: any) => void;
-    'stopTalking': (evt: any) => void;
-    'muteDetect': (evt: any) => void;
-    'unmuteMember': (evt: any) => void;
-    'muteMember': (evt: any) => void;
-    'kickMember': (evt: any) => void;
-    'dtmfMember': (evt: any) => void;
-    'startRecording': (evt: any) => void;
-    'stopRecording': (evt: any) => void;
-    'playFile': (evt: any) => void;
-    'playFileMember': (evt: any) => void;
-    'playFileDone': (evt: any) => void;
-    'lock': (evt: any) => void;
-    'unlock': (evt: any) => void;
-    'transfer': (evt: any) => void;
-    'record': (evt: any) => void;
+    'addMember': (evt: EslEvent) => void;
+    'delMember': (evt: EslEvent) => void;
+    'startTalking': (evt: EslEvent) => void;
+    'stopTalking': (evt: EslEvent) => void;
+    'muteDetect': (evt: EslEvent) => void;
+    'unmuteMember': (evt: EslEvent) => void;
+    'muteMember': (evt: EslEvent) => void;
+    'kickMember': (evt: EslEvent) => void;
+    'dtmfMember': (evt: EslEvent) => void;
+    'startRecording': (evt: EslEvent) => void;
+    'stopRecording': (evt: EslEvent) => void;
+    'playFile': (evt: EslEvent) => void;
+    'playFileMember': (evt: EslEvent) => void;
+    'playFileDone': (evt: EslEvent) => void;
+    'lock': (evt: EslEvent) => void;
+    'unlock': (evt: EslEvent) => void;
+    'transfer': (evt: EslEvent) => void;
+    'record': (evt: EslEvent) => void;
 
   }
 }
@@ -94,24 +94,24 @@ declare interface Conference {
 namespace Conference {
   export interface Events {
 
-    'addMember': (evt: any) => void;
-    'delMember': (evt: any) => void;
-    'startTalking': (evt: any) => void;
-    'stopTalking': (evt: any) => void;
-    'muteDetect': (evt: any) => void;
-    'unmuteMember': (evt: any) => void;
-    'muteMember': (evt: any) => void;
-    'kickMember': (evt: any) => void;
-    'dtmfMember': (evt: any) => void;
-    'startRecording': (evt: any) => void;
-    'stopRecording': (evt: any) => void;
-    'playFile': (evt: any) => void;
-    'playFileMember': (evt: any) => void;
-    'playFileDone': (evt: any) => void;
-    'lock': (evt: any) => void;
-    'unlock': (evt: any) => void;
-    'transfer': (evt: any) => void;
-    'record': (evt: any) => void;
+    'addMember': (evt: EslEvent) => void;
+    'delMember': (evt: EslEvent) => void;
+    'startTalking': (evt: EslEvent) => void;
+    'stopTalking': (evt: EslEvent) => void;
+    'muteDetect': (evt: EslEvent) => void;
+    'unmuteMember': (evt: EslEvent) => void;
+    'muteMember': (evt: EslEvent) => void;
+    'kickMember': (evt: EslEvent) => void;
+    'dtmfMember': (evt: EslEvent) => void;
+    'startRecording': (evt: EslEvent) => void;
+    'stopRecording': (evt: EslEvent) => void;
+    'playFile': (evt: EslEvent) => void;
+    'playFileMember': (evt: EslEvent) => void;
+    'playFileDone': (evt: EslEvent) => void;
+    'lock': (evt: EslEvent) => void;
+    'unlock': (evt: EslEvent) => void;
+    'transfer': (evt: EslEvent) => void;
+    'record': (evt: EslEvent) => void;
 
   }
 }
@@ -195,7 +195,7 @@ class Conference extends EventEmitter {
   }
 
   getSize(): Promise<number> {
-    return (this.list('count') as Promise<any>).then((evt: any) => {
+    return (this.list('count') as Promise<any>).then((evt: EslEvent) => {
       try {
         return parseInt(evt.getBody(), 10);
       } catch (err) {
@@ -213,14 +213,14 @@ class Conference extends EventEmitter {
     if (Array.isArray(args)) args = args.join(' ');
 
     const __x = (cb: Conference.OperationCallback) => {
-      this.endpoint.api('conference', `${this.name} ${op} ${args}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} ${op} ${args}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         if (['lock', 'unlock', 'mute', 'deaf', 'unmute', 'undeaf'].includes(op)) {
           if (/OK\s+/.test(body)) return cb(err, body);
           return cb(new Error(body));
         }
-        return cb(err, evt);
+        return cb(err);
       });
     };
 
@@ -250,8 +250,8 @@ class Conference extends EventEmitter {
   set(param: string, value: string, callback?: Conference.OperationCallback): Promise<any> | this {
     debug(`Conference#setParam: conference ${this.name} set ${param} ${value}`);
     const __x = (cb: Conference.OperationCallback) => {
-      this.endpoint.api('conference', `${this.name} set ${param} ${value}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} set ${param} ${value}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         return cb(err, body);
       });
@@ -273,8 +273,8 @@ class Conference extends EventEmitter {
   get(param: string, callback?: Conference.OperationCallback): Promise<any> | this {
     debug(`Conference#getParam: conference ${this.name} get ${param}`);
     const __x = (cb: Conference.OperationCallback) => {
-      this.endpoint.api('conference', `${this.name} get ${param}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} get ${param}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         const res = /^\d+$/.test(body) ? parseInt(body, 10) : body;
         return cb(err, res);
@@ -299,8 +299,8 @@ class Conference extends EventEmitter {
 
     const __x = (cb: Conference.OperationCallback) => {
       this.recordFile = file;
-      this.endpoint.api('conference', `${this.name} recording start ${file}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} recording start ${file}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         if (body.includes(`Record file ${file}`)) {
           return cb(null, body);
@@ -325,8 +325,8 @@ class Conference extends EventEmitter {
   pauseRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
     const __x = (cb: Conference.OperationCallback) => {
       this.recordFile = file;
-      this.endpoint.api('conference', `${this.name} recording pause ${this.recordFile}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} recording pause ${this.recordFile}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         if (body.includes(`Pause recording file ${file}`)) {
           return cb(null, body);
@@ -351,8 +351,8 @@ class Conference extends EventEmitter {
   resumeRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
     const __x = (cb: Conference.OperationCallback) => {
       this.recordFile = file;
-      this.endpoint.api('conference', `${this.name} recording resume ${this.recordFile}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} recording resume ${this.recordFile}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         if (body.includes(`Resume recording file ${file}`)) {
           return cb(null, body);
@@ -376,8 +376,8 @@ class Conference extends EventEmitter {
 
   stopRecording(file: string, callback?: Conference.OperationCallback): Promise<any> | this {
     const __x = (cb: Conference.OperationCallback) => {
-      this.endpoint.api('conference', `${this.name} recording stop ${this.recordFile}`, (err: any, evt: any) => {
-        if (err) return cb(err, evt);
+      this.endpoint.api('conference', `${this.name} recording stop ${this.recordFile}`, (err: Error | null, evt: EslEvent) => {
+        if (err) return cb(err);
         const body = evt.getBody();
         if (body.includes(`Stopped recording file ${file}`)) {
           return cb(null, body);
@@ -452,7 +452,7 @@ class Conference extends EventEmitter {
     });
   }
 
-  private _onAddMember(evt: any) {
+  private _onAddMember(evt: EslEvent) {
     debug('Conference#_onAddMember: %O', this);
     const size = parseInt(evt.getHeader('Conference-Size'), 10);
     const newMemberId = parseInt(evt.getHeader('Member-ID'), 10);
@@ -470,42 +470,42 @@ class Conference extends EventEmitter {
     debug(`Conference#_onAddMember: added member ${newMemberId} to ${this.name} size is ${size}`);
   }
 
-  private _onDelMember(evt: any) {
+  private _onDelMember(evt: EslEvent) {
     const memberId = parseInt(evt.getHeader('Member-ID'), 10);
     const size = parseInt(evt.getHeader('Conference-Size'), 10);
     this.participants.delete(memberId);
     debug(`Conference#_onDelMember: removed member ${memberId} from ${this.name} size is ${size}`);
   }
 
-  private _onStartTalking(evt: any) {
+  private _onStartTalking(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid} member ${evt.getHeader('Member-ID')} started talking`);
   }
 
-  private _onStopTalking(evt: any) {
+  private _onStopTalking(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid}  member ${evt.getHeader('Member-ID')} stopped talking`);
   }
 
-  private _onMuteDetect(evt: any) {
+  private _onMuteDetect(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid}  muted member ${evt.getHeader('Member-ID')} is talking`);
   }
 
-  private _onUnmuteMember(evt: any) {
+  private _onUnmuteMember(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid}  member ${evt.getHeader('Member-ID')} has been unmuted`);
   }
 
-  private _onMuteMember(evt: any) {
+  private _onMuteMember(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid}  member ${evt.getHeader('Member-ID')} has been muted`);
   }
 
-  private _onKickMember(evt: any) {
+  private _onKickMember(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid}  member ${evt.getHeader('Member-ID')} has been kicked`);
   }
 
-  private _onDtmfMember(evt: any) {
+  private _onDtmfMember(evt: EslEvent) {
     debug(`Conf ${this.name}:${this.uuid}  member ${evt.getHeader('Member-ID')} has entered DTMF`);
   }
 
-  private _onStartRecording(evt: any) {
+  private _onStartRecording(evt: EslEvent) {
     debug('Conference#_onStartRecording: %s:%s  %O', this.name, this.uuid, evt);
     const err = evt.getHeader('Error');
     if (err) {
@@ -514,21 +514,21 @@ class Conference extends EventEmitter {
     }
   }
 
-  private _onStopRecording(evt: any) {
+  private _onStopRecording(evt: EslEvent) {
     debug('Conference#_onStopRecording: %s:%s  %O', this.name, this.uuid, evt);
   }
 
-  private _onPlayFile(evt: any) {
+  private _onPlayFile(evt: EslEvent) {
     const confName = evt.getHeader('Conference-Name');
     const file = evt.getHeader('File');
     debug(`conference-level play has started: ${confName}: ${file}`);
   }
 
-  private _onPlayFileMember(evt: any) {
+  private _onPlayFileMember(evt: EslEvent) {
     debug(`member-level play for member ${evt.getHeader('Member-ID')} has completed`);
   }
 
-  private _onPlayFileDone(evt: any) {
+  private _onPlayFileDone(evt: EslEvent) {
     const confName = evt.getHeader('Conference-Name');
     const file = evt.getHeader('File');
     const seconds = parseInt(evt.getHeader('seconds'), 10);
@@ -565,23 +565,23 @@ class Conference extends EventEmitter {
     }
   }
 
-  private _onLock(evt: any) {
+  private _onLock(evt: EslEvent) {
     debug('conference has been locked: %O', evt);
   }
 
-  private _onUnlock(evt: any) {
+  private _onUnlock(evt: EslEvent) {
     debug('conference has been unlocked: %O', evt);
   }
 
-  private _onTransfer(evt: any) {
+  private _onTransfer(evt: EslEvent) {
     debug('member has been transferred to another conference: %O', evt);
   }
 
-  private _onRecord(evt: any) {
+  private _onRecord(evt: EslEvent) {
     debug(`conference record has started or stopped: ${evt}`);
   }
 
-  private __onConferenceEvent(evt: any) {
+  private __onConferenceEvent(evt: EslEvent) {
     const subclass = evt.getHeader('Event-Subclass');
     if (subclass === 'conference::maintenance') {
       const action = evt.getHeader('Action');

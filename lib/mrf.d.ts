@@ -1,3 +1,4 @@
+import { Srf } from "./types";
 import MediaServer from './mediaserver';
 import { EventEmitter } from 'events';
 declare namespace Mrf {
@@ -27,8 +28,8 @@ declare class Mrf extends EventEmitter {
     static utils: {
         parseBodyText: (txt: string) => Record<string, string | number>;
     };
-    constructor(srf: any, opts?: Mrf.CreateOptions);
-    get srf(): any;
+    constructor(srf: Srf, opts?: Mrf.CreateOptions);
+    get srf(): Srf;
     connect(opts: Mrf.ConnectOptions): Promise<MediaServer>;
     connect(opts: Mrf.ConnectOptions, callback: Mrf.ConnectCallback): this;
 }

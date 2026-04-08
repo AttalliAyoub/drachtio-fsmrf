@@ -41,7 +41,7 @@ export const parseBodyText = (txt: string): Record<string, string | number> => {
   }, {});
 };
 
-export const sortFunctor = (codecs: string[], rtp: any[]) => {
+export const sortFunctor = (codecs: string[], rtp: { payload?: number; codec?: string }[]) => {
   const DEFAULT_SORT_ORDER = 999;
   const rtpMap = new Map<number, string>();
   rtpMap.set(0, 'PCMU');
@@ -97,11 +97,11 @@ export const modifySdpCodecOrder = (sdp: string, codecList: string[]): string =>
   }
 };
 
-export const pick = <T extends Record<string, any>>(obj: T, keys: string): Partial<T> => {
+export const pick = <T extends object>(obj: T, keys: string): Partial<T> => {
   const list = keys.split(' ');
   return list.reduce((acc: Partial<T>, key: string) => {
     if (key in obj) {
-      acc[key as keyof T] = obj[key];
+      acc[key as keyof Partial<T>] = obj[key as keyof T];
     }
     return acc;
   }, {});

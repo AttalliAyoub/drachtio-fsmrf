@@ -52,7 +52,8 @@ namespace MediaServer {
   export type CreateEndpointCallback = (err: Error | null, endpoint?: Endpoint) => void;
   export type CreateConferenceCallback = (err: Error | null, conference?: Conference) => void;
   export type ApiCallback = (response: string) => void;
-  export type ConnectCallerCallback = (err: Error | null, result?: { endpoint?: Endpoint; dialog?: any }) => void;
+  export type ConnectCallerCallback = (err: Error | null, result?: { endpoint?: Endpoint; dialog?: SrfDialog }) => void;
+  export interface PendingConnection { dialog?: SrfDialog; conn?: EslConnection; connTimeout?: NodeJS.Timeout; fn?: (...args: any[]) => void; createTimeout?: NodeJS.Timeout; callback?: (...args: any[]) => void; }
 }
 
 namespace MediaServer {
@@ -108,10 +109,10 @@ declare interface MediaServer {
   emit(event: string | symbol, ...args: any[]): boolean;
 }
 class MediaServer extends EventEmitter {
-  private _conn: any;
+  private _conn: EslConnection;
   private _mrf: Mrf;
-  private _srf: any;
-  public pendingConnections: Map<string, any>;
+  private _srf: Srf;
+  public pendingConnections: Map<string, MediaServer.PendingConnection>;
   private _isMediaServerReady: boolean;
   public maxSessions: number;
   public currentSessions: number;
@@ -126,7 +127,7 @@ class MediaServer extends EventEmitter {
   public listenPort?: number;
   public advertisedAddress?: string;
   public advertisedPort?: number;
-  private _server?: any;
+  private _server?: EslServer;
   public hostname?: string;
   public v4address?: string;
   public v6address?: string;
@@ -134,7 +135,7 @@ class MediaServer extends EventEmitter {
   public cpuIdle?: number;
 
   constructor(
-    conn: any,
+    conn: EslConnection,
     mrf: Mrf,
     listenAddress: string,
     listenPort: number,
@@ -201,7 +202,7 @@ class MediaServer extends EventEmitter {
       this._server = new esl.Server({ server: server, myevents: false }, () => {
         this.emit('connect');
 
-        this._conn.api('sofia status', (res: any) => {
+        this._conn.api('sofia status', (res: EslEvent) => {
           const status = res.getBody();
           let re = new RegExp(`^\\s*${profile}\\s.*sip:mod_sofia@((?:[0-9]{1,3}\\.){3}[0-9]{1,3}:\\d+)`, 'm');
           let results = re.exec(status);
@@ -236,8 +237,8 @@ class MediaServer extends EventEmitter {
         });
       });
 
-      this._server.on('connection::ready', this._onNewCall.bind(this));
-      this._server.on('connection::close', this._onConnectionClosed.bind(this));
+      this._server!.on('connection::ready', this._onNewCall.bind(this));
+      this._server!.on('connection::close', this._onConnectionClosed.bind(this));
     });
   }
 
@@ -295,7 +296,7 @@ class MediaServer extends EventEmitter {
     assert.strictEqual(typeof command, 'string', "'command' must be a valid freeswitch api command");
 
     const __x = (cb: MediaServer.ApiCallback) => {
-      this.conn.api(command, (res: any) => {
+      this.conn.api(command, (res: EslEvent) => {
         cb(res.getBody());
       });
     };
@@ -315,7 +316,7 @@ class MediaServer extends EventEmitter {
   createEndpoint(opts?: MediaServer.EndpointOptions): Promise<Endpoint>;
   createEndpoint(opts: MediaServer.EndpointOptions, callback: MediaServer.CreateEndpointCallback): this;
   createEndpoint(callback: MediaServer.CreateEndpointCallback): this;
-  createEndpoint(opts?: any, callback?: any): Promise<Endpoint> | this {
+  createEndpoint(opts?: MediaServer.EndpointOptions | MediaServer.CreateEndpointCallback, callback?: MediaServer.CreateEndpointCallback): Promise<Endpoint> | this {
     if (typeof opts === 'function') {
       callback = opts;
       opts = {};
@@ -328,7 +329,7 @@ class MediaServer extends EventEmitter {
     opts.is3pcc = !opts.remoteSdp;
     if (!opts.is3pcc && opts.codecs) {
       if (typeof opts.codecs === 'string') opts.codecs = [opts.codecs];
-      opts.remoteSdp = modifySdpCodecOrder(opts.remoteSdp, opts.codecs);
+      opts.remoteSdp = modifySdpCodecOrder(opts.remoteSdp as string, opts.codecs);
     } else if (opts.is3pcc && opts.srtp === true) {
       opts.headers['X-Secure-RTP'] = true;
     }
@@ -337,7 +338,7 @@ class MediaServer extends EventEmitter {
     const proto = opts.dtls ? 'dtls' : 'udp';
 
     assert.ok(
-      opts.is3pcc || !requiresDtlsHandshake(opts.remoteSdp),
+      opts.is3pcc || !requiresDtlsHandshake(opts.remoteSdp as string),
       'Mediaserver#createEndpoint() can not be called with a remote sdp requiring a dtls handshake; ' +
         'use Mediaserver#connectCaller() instead, as this allows the necessary handshake'
     );
@@ -354,7 +355,7 @@ class MediaServer extends EventEmitter {
         });
       }
 
-      const timeoutFn = (dialog: any, uuid: string) => {
+      const timeoutFn = (dialog: SrfDialog, uuid: string) => {
         this.pendingConnections.delete(uuid);
         dialog.destroy();
         debug(`MediaServer#createEndpoint - connection timeout for ${uuid}`);
@@ -371,7 +372,7 @@ class MediaServer extends EventEmitter {
       }
       debug(`MediaServer#createEndpoint: sending ${opts.is3pcc ? '3ppc' : ''} INVITE to uri ${uri} with id ${uuid}`);
 
-      const produceEndpoint = (dialog: any, conn: any) => {
+      const produceEndpoint = (dialog: SrfDialog, conn: EslConnection) => {
         debug(`MediaServer#createEndpoint - produceEndpoint for ${uuid}`);
 
         const endpoint = new Endpoint(conn, dialog, this, opts);
@@ -392,19 +393,19 @@ class MediaServer extends EventEmitter {
           localSdp: opts.remoteSdp
         });
         debug(`MediaServer#createEndpoint - createUAC produced dialog for ${uuid}`);
-        const obj = this.pendingConnections.get(uuid);
+        const obj = this.pendingConnections.get(uuid); if (!obj) return;
         obj.dialog = dlg;
         if (obj.conn) {
           this.pendingConnections.delete(uuid);
           produceEndpoint.bind(this)(obj.dialog, obj.conn);
         } else {
-          obj.connTimeout = setTimeout(timeoutFn.bind(this, dlg, uuid), 4000);
-          obj.fn = produceEndpoint.bind(this, obj.dialog);
+          obj.connTimeout = setTimeout(timeoutFn.bind(this, dlg as SrfDialog, uuid), 4000);
+          obj.fn = produceEndpoint.bind(this, obj.dialog as SrfDialog);
         }
-      } catch (err: any) {
+      } catch (err) {
         debug(`MediaServer#createEndpoint - createUAC returned error for ${uuid}`);
         this.pendingConnections.delete(uuid);
-        cb(err);
+        cb(err as Error);
       }
     };
 
@@ -421,10 +422,10 @@ class MediaServer extends EventEmitter {
     });
   }
 
-  connectCaller(req: any, res: any, opts?: MediaServer.EndpointOptions): Promise<{ endpoint: Endpoint; dialog: any }>;
-  connectCaller(req: any, res: any, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
-  connectCaller(req: any, res: any, callback: MediaServer.ConnectCallerCallback): this;
-  connectCaller(req: any, res: any, opts?: any, callback?: any): Promise<{ endpoint: Endpoint; dialog: any }> | this {
+  connectCaller(req: SrfRequest, res: SrfResponse, opts?: MediaServer.EndpointOptions): Promise<{ endpoint: Endpoint; dialog: SrfDialog }>;
+  connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
+  connectCaller(req: SrfRequest, res: SrfResponse, callback: MediaServer.ConnectCallerCallback): this;
+  connectCaller(req: SrfRequest, res: SrfResponse, opts?: MediaServer.EndpointOptions | MediaServer.ConnectCallerCallback, callback?: MediaServer.ConnectCallerCallback): Promise<{ endpoint: Endpoint; dialog: SrfDialog }> | this {
     if (typeof opts === 'function') {
       callback = opts;
       opts = {};
@@ -441,21 +442,21 @@ class MediaServer extends EventEmitter {
           });
           const dialog = await this.srf.createUAS(req, res, {
             localSdp: endpoint.local?.sdp,
-            headers: opts.headers
+            headers: opts.headers as Record<string, string | number | undefined>
           });
           cb(null, { endpoint, dialog });
-        } catch (err: any) {
-          cb(err);
+        } catch (err) {
+          cb(err as Error);
         }
       } else {
-        const pair: { endpoint?: Endpoint; dialog?: any } = {};
+        const pair: { endpoint?: Endpoint; dialog?: SrfDialog } = {};
         const uuid = generateUuid();
         const family = opts.family || 'ipv4';
         const uri = `sip:drachtio@${this.sip[family as 'ipv4' | 'ipv6']['udp'].address}`;
 
         this.pendingConnections.set(uuid, {});
 
-        const produceEndpoint = (dialog: any, conn: any) => {
+        const produceEndpoint = (dialog: SrfDialog, conn: EslConnection) => {
           debug(`MediaServer#connectCaller - (srtp scenario) produceEndpoint for ${uuid}`);
 
           const endpoint = new Endpoint(conn, dialog, this, opts);
@@ -466,7 +467,7 @@ class MediaServer extends EventEmitter {
           });
         };
 
-        const timeoutFn = (dialog: any, _uuid: string) => {
+        const timeoutFn = (dialog: SrfDialog, _uuid: string) => {
           this.pendingConnections.delete(_uuid);
           dialog.destroy();
           if (pair.dialog) pair.dialog.destroy();
@@ -485,27 +486,27 @@ class MediaServer extends EventEmitter {
             localSdp: req.body
           },
           {},
-          (err: any, dlg: any) => {
+          (err: Error | null, dlg?: SrfDialog) => {
             if (err) {
               debug(`MediaServer#connectCaller - createUAC returned error for ${uuid}`);
               this.pendingConnections.delete(uuid);
-              return cb(err);
+              return cb(err as Error);
             }
             debug('MediaServer#connectCaller - createUAC (srtp scenario) produced dialog for %s: %O', uuid, dlg);
 
-            const obj = this.pendingConnections.get(uuid);
+            const obj = this.pendingConnections.get(uuid); if (!obj) return;
             obj.dialog = dlg;
-            obj.connTimeout = setTimeout(timeoutFn.bind(this, dlg, uuid), 4000);
-            obj.fn = produceEndpoint.bind(this, obj.dialog);
+            obj.connTimeout = setTimeout(timeoutFn.bind(this, dlg as SrfDialog, uuid), 4000);
+            obj.fn = produceEndpoint.bind(this, obj.dialog as SrfDialog);
 
             this.srf.createUAS(
               req,
               res,
               {
-                localSdp: dlg.remote.sdp,
-                headers: opts.headers
+                localSdp: (dlg as SrfDialog).remote.sdp,
+                headers: opts.headers as Record<string, string | number | undefined>
               },
-              (err2: any, dialog: any) => {
+              (err2: Error | null, dialog: SrfDialog) => {
                 if (err2) {
                   debug(`MediaServer#connectCaller - createUAS returned error for ${uuid}`);
                   this.pendingConnections.delete(uuid);
@@ -528,7 +529,7 @@ class MediaServer extends EventEmitter {
     return new Promise((resolve, reject) => {
       __x((err, pair) => {
         if (err) return reject(err);
-        resolve(pair as { endpoint: Endpoint; dialog: any });
+        resolve(pair as { endpoint: Endpoint; dialog: SrfDialog });
       });
     });
   }
@@ -608,9 +609,9 @@ class MediaServer extends EventEmitter {
         debug(`MediaServer#createConference: created conference ${name}:${confUuid}`);
         console.log(`MediaServer#createConference: created conference ${name}:${confUuid}`);
         cb(null, conference);
-      } catch (err: any) {
+      } catch (err) {
         console.log({ err }, 'mediaServer:createConference - error');
-        cb(err);
+        cb(err as Error);
       }
     };
 
@@ -635,7 +636,7 @@ class MediaServer extends EventEmitter {
     debug(`Mediaserver#_onError: got error from freeswitch connection, attempting reconnect: ${err}`);
   }
 
-  private _onHeartbeat(evt: any) {
+  private _onHeartbeat(evt: EslEvent) {
     this.maxSessions = parseInt(evt.getHeader('Max-Sessions'), 10);
     this.currentSessions = parseInt(evt.getHeader('Session-Count'), 10);
     this.cps = parseInt(evt.getHeader('Session-Per-Sec'), 10);
@@ -651,13 +652,13 @@ class MediaServer extends EventEmitter {
       console.error(`MediaServer#_onCreateTimeout: uuid not found: ${uuid}`);
       return;
     }
-    const obj = this.pendingConnections.get(uuid);
-    obj.callback(new Error('Connection timeout'));
-    clearTimeout(obj.createTimeout);
+    const obj = this.pendingConnections.get(uuid); if (!obj) return;
+    if (obj.callback) obj.callback(new Error('Connection timeout'));
+    if (obj.createTimeout) clearTimeout(obj.createTimeout);
     this.pendingConnections.delete(uuid);
   }
 
-  private _onNewCall(conn: any, id: string) {
+  private _onNewCall(conn: EslConnection, id: string) {
     const userAgent = conn.getInfo().getHeader('variable_sip_user_agent');
     const results = RE_USER_AGENT.exec(userAgent);
     if (null === results) {
@@ -669,15 +670,15 @@ class MediaServer extends EventEmitter {
       console.error(`received INVITE with unknown uuid: ${uuid}`);
       return conn.execute('hangup', 'NO_ROUTE_DESTINATION');
     }
-    const obj = this.pendingConnections.get(uuid);
+    const obj = this.pendingConnections.get(uuid); if (!obj) return;
     if (obj.fn) {
       obj.fn(conn);
-      clearTimeout(obj.connTimeout);
+      if (obj.connTimeout) clearTimeout(obj.connTimeout);
       this.pendingConnections.delete(uuid);
     } else {
       obj.conn = conn;
     }
-    const count = this._server.getCountOfConnections();
+    const count = this._server ? this._server.getCountOfConnections() : 0;
     const realUuid = conn.getInfo().getHeader('Channel-Unique-ID');
     debug(`MediaServer#_onNewCall: ${this.address} new connection id: ${id}, uuid: ${realUuid}, count is ${count}`);
     this.emit('channel::open', {
@@ -687,7 +688,7 @@ class MediaServer extends EventEmitter {
     });
   }
 
-  private _onConnectionClosed(conn: any, id: string) {
+  private _onConnectionClosed(conn: EslConnection, id: string) {
     let uuid;
     if (conn) {
       const info = conn.getInfo();
@@ -695,7 +696,7 @@ class MediaServer extends EventEmitter {
         uuid = info.getHeader('Channel-Unique-ID');
       }
     }
-    const count = this._server.getCountOfConnections();
+    const count = this._server ? this._server.getCountOfConnections() : 0;
     debug(`MediaServer#_onConnectionClosed: connection id: ${id}, uuid: ${uuid}, count is ${count}`);
     this.emit('channel::close', {
       uuid,

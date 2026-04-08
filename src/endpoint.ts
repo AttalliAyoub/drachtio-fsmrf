@@ -152,9 +152,9 @@ declare interface Endpoint {
 }
 class Endpoint extends EventEmitter {
   private _customEvents: string[];
-  private _conn: any;
+  private _conn: EslConnection | null;
   private _ms: MediaServer;
-  private _dialog: any;
+  private _dialog: SrfDialog | null;
   public uuid: string;
   public secure: boolean;
   public local: { sdp?: string; mediaIp?: string; mediaPort?: string };
@@ -167,7 +167,7 @@ class Endpoint extends EventEmitter {
   private _joinCallback?: (memberId: number, confUuid: string) => void;
   public dtmfType?: string;
 
-  constructor(conn: any, dialog: any, ms: MediaServer, opts?: Endpoint.CreateOptions) {
+  constructor(conn: EslConnection, dialog: SrfDialog, ms: MediaServer, opts?: Endpoint.CreateOptions) {
     super();
 
     opts = opts || {};
@@ -247,16 +247,16 @@ class Endpoint extends EventEmitter {
     return this._ms;
   }
 
-  get srf(): any {
+  get srf(): Srf {
     return this.ms.srf;
   }
 
-  get conn(): any {
-    return this._conn;
+  get conn(): EslConnection {
+    return this._conn as EslConnection;
   }
 
-  get dialog(): any {
-    return this._dialog;
+  get dialog(): SrfDialog {
+    return this._dialog as SrfDialog;
   }
 
   set dialog(dlg: any) {
@@ -389,8 +389,8 @@ class Endpoint extends EventEmitter {
           return cb(null, parseBodyText(body.slice(0, bodyLen)));
         }
         cb(null, {});
-      } catch (err: any) {
-        cb(err);
+      } catch (err) {
+        cb(err as Error);
       }
     };
 
@@ -407,7 +407,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
-  private _onCustomEvent(evt: any) {
+  private _onCustomEvent(evt: EslEvent) {
     const eventName = evt.getHeader('Event-Subclass');
     const fullEventName = `CUSTOM ${eventName}`;
     const ev = this._customEvents.find((e) => e === fullEventName);
@@ -454,8 +454,8 @@ class Endpoint extends EventEmitter {
             playbackLastOffsetPos: evt.getHeader('variable_playback_last_offset_pos')
           });
         }
-      } catch (err: any) {
-        cb(err);
+      } catch (err) {
+        cb(err as Error);
       }
     };
 
@@ -489,7 +489,7 @@ class Endpoint extends EventEmitter {
 
       const args = ['min', 'max', 'tries', 'timeout', 'terminators', 'file', 'invalidFile', 'varName', 'regexp', 'digitTimeout'].map((prop) => opts[prop as keyof Endpoint.PlayCollectOptions]);
 
-      this.execute('play_and_get_digits', args.join(' '), (err: any, evt: any) => {
+      this.execute('play_and_get_digits', args.join(' '), (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const application = evt.getHeader('Application');
         if ('play_and_get_digits' !== application) {
@@ -537,7 +537,7 @@ class Endpoint extends EventEmitter {
     args.push(text);
 
     const __x = (cb: Endpoint.PlayOperationCallback) => {
-      this.execute('say', args.join(' '), (err: any, evt: any) => {
+      this.execute('say', args.join(' '), (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const application = evt.getHeader('Application');
         if ('say' !== application) return cb(new Error(`Unexpected application: ${application}`));
@@ -569,7 +569,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       const args = [opts.ttsEngine, opts.voice, opts.text].join('|');
-      this.execute('speak', args, (err: any, evt: any) => {
+      this.execute('speak', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const application = evt.getHeader('Application');
         if ('speak' !== application) return cb(new Error(`Unexpected application: ${application}`));
@@ -650,7 +650,7 @@ class Endpoint extends EventEmitter {
     const otherUuid = typeof other === 'string' ? other : other.uuid;
 
     const __x = (cb: Endpoint.OperationCallback) => {
-      this.api('uuid_bridge', [this.uuid, otherUuid], (err: any, event: any, headers: any, body: any) => {
+      this.api('uuid_bridge', [this.uuid, otherUuid], (err: Error | null, event: any, headers: any, body: any) => {
         if (err) return cb(err);
         if (body && 0 === body.indexOf('+OK')) {
           return cb(null);
@@ -674,7 +674,7 @@ class Endpoint extends EventEmitter {
 
   unbridge(callback?: Endpoint.OperationCallback): Promise<any> | this {
     const __x = (cb: Endpoint.OperationCallback) => {
-      this.api('uuid_transfer', [this.uuid, '-both', 'park', 'inline'], (err: any, evt: any) => {
+      this.api('uuid_transfer', [this.uuid, '-both', 'park', 'inline'], (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) {
@@ -700,7 +700,7 @@ class Endpoint extends EventEmitter {
   getNonMatchingConfParticipants(confName: string, tag: string, callback?: Endpoint.OperationCallback): Promise<any> | this {
     const __x = (cb: Endpoint.OperationCallback) => {
       const args = [confName, 'gettag', tag, 'nomatch'];
-      this.api('conference', args, (err: any, evt: any) => {
+      this.api('conference', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody().trim()
           .split(',')
@@ -726,7 +726,7 @@ class Endpoint extends EventEmitter {
     const __x = (cb: Endpoint.OperationCallback) => {
       const db = parseDecibels(opts);
       const args = [this.uuid, 'setGain', db.toString()];
-      this.api('uuid_dub', args, (err: any, evt: any) => {
+      this.api('uuid_dub', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) {
@@ -765,7 +765,7 @@ class Endpoint extends EventEmitter {
         if (gain) args.push(gain);
       }
 
-      this.api('uuid_dub', `^^|${args.join('|')}`, (err: any, evt: any) => {
+      this.api('uuid_dub', `^^|${args.join('|')}`, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) {
@@ -811,14 +811,14 @@ class Endpoint extends EventEmitter {
       
       if (opts.prompt) {
         const a = args.concat(opts.prompt);
-        this.api(apiCall, `^^|${a.join('|')}`, (err: any, evt: any) => {
+        this.api(apiCall, `^^|${a.join('|')}`, (err: Error | null, evt: EslEvent) => {
           if (err) return cb(err);
           const body = evt.getBody();
           if (0 === body.indexOf('+OK')) return cb(null);
           cb(new Error(body));
         });
       } else {
-        this.api(apiCall, args, (err: any, evt: any) => {
+        this.api(apiCall, args, (err: Error | null, evt: EslEvent) => {
           if (err) return cb(err);
           const body = evt.getBody();
           if (0 === body.indexOf('+OK')) return cb(null);
@@ -855,7 +855,7 @@ class Endpoint extends EventEmitter {
         break;
     }
     const __x = (cb: Endpoint.OperationCallback) => {
-      this.api(apiCall, [this.uuid, 'start_timers', opts.bugname || bugname], (err: any, evt: any) => {
+      this.api(apiCall, [this.uuid, 'start_timers', opts.bugname || bugname], (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -895,7 +895,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       const args = [this.uuid, 'stop', opts.bugname || bugname];
-      this.api(apiCall, args, (err: any, evt: any) => {
+      this.api(apiCall, args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -932,7 +932,7 @@ class Endpoint extends EventEmitter {
       const args = vendor === 'native' ?
         [this.uuid, 'start', strategy, mode, silenceMs, voiceMs, bugname] :
         [this.uuid, 'start', strategy, threshold, silenceMs, voiceMs, speechPadMs, bugname];
-      this.api(apiCall, args, (err: any, evt: any) => {
+      this.api(apiCall, args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -961,7 +961,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       const args = [this.uuid, 'stop', bugname];
-      this.api(apiCall, args, (err: any, evt: any) => {
+      this.api(apiCall, args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -1000,7 +1000,7 @@ class Endpoint extends EventEmitter {
       args.push(opts.bidirectionalAudio ? opts.bidirectionalAudio.enabled || 'true' : 'true');
       args.push(opts.bidirectionalAudio ? opts.bidirectionalAudio.streaming || 'false' : 'false');
       args.push(opts.bidirectionalAudio ? opts.bidirectionalAudio.sampleRate || '' : '');
-      this.api('uuid_audio_fork', `^^|${args.join('|')}`, (err: any, evt: any) => {
+      this.api('uuid_audio_fork', `^^|${args.join('|')}`, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -1054,7 +1054,7 @@ class Endpoint extends EventEmitter {
     args.push(metadata);
 
     const __x = (cb: Endpoint.OperationCallback) => {
-      this.api('uuid_audio_fork', args, (err: any, evt: any) => {
+      this.api('uuid_audio_fork', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -1109,7 +1109,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       debug(`calling uuid_audio_fork with args ${JSON.stringify(args)}`);
-      this.api('uuid_audio_fork', args, (err: any, evt: any) => {
+      this.api('uuid_audio_fork', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -1162,7 +1162,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       debug(`calling uuid_audio_fork with args ${JSON.stringify(args)}`);
-      this.api('uuid_audio_fork', args, (err: any, evt: any) => {
+      this.api('uuid_audio_fork', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -1195,7 +1195,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       debug(`calling uuid_audio_fork with args ${JSON.stringify(args)}`);
-      this.api('uuid_audio_fork', args, (err: any, evt: any) => {
+      this.api('uuid_audio_fork', args, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (0 === body.indexOf('+OK')) return cb(null);
@@ -1240,7 +1240,7 @@ class Endpoint extends EventEmitter {
     const __x = (cb: Endpoint.OperationCallback) => {
       if (!this._conn) return cb(new Error('endpoint no longer active'));
       debug(`Endpoint#api ${command} ${args || ''}`);
-      this._conn.api(command, args, (...response: any[]) => {
+      this._conn.api(command, args || "", (...response: any[]) => {
         debug(`Endpoint#api response: ${JSON.stringify(response).slice(0, 512)}`);
         cb(null, ...response);
       });
@@ -1268,7 +1268,7 @@ class Endpoint extends EventEmitter {
     const __x = (cb: Endpoint.OperationCallback) => {
       if (!this._conn) return cb(new Error('endpoint no longer active'));
       debug(`Endpoint#execute ${app} ${arg}`);
-      this._conn.execute(app, arg, (evt: any) => {
+      this._conn.execute(app, arg, (evt: EslEvent) => {
         cb(null, evt);
       });
     };
@@ -1287,12 +1287,12 @@ class Endpoint extends EventEmitter {
   }
 
   executeAsync(app: string, arg: string, callback?: any) {
-    return this._conn.execute(app, arg, callback);
+    return this._conn?.execute(app, arg, callback);
   }
 
   modify(newSdp: string) {
     let result: any;
-    return this._dialog.modify(newSdp)
+    return this._dialog?.modify(newSdp)
       .then((res: any) => {
         result = res;
         return this.getChannelVariables(true);
@@ -1331,7 +1331,7 @@ class Endpoint extends EventEmitter {
       });
 
       debug(`Endpoint#destroy: executing hangup on ${this.uuid}`);
-      this.execute('hangup', (err: any) => {
+      this.execute('hangup', (err: Error | null) => {
         if (err) {
           debug(`got error hanging up endpoint ${this.uuid}: ${err.message}`);
           cb(err);
@@ -1398,7 +1398,7 @@ class Endpoint extends EventEmitter {
     });
 
     const __x = (cb: Endpoint.OperationCallback) => {
-      this.execute('record', `${file} ${args.join(' ')}`, (err: any, evt: any) => {
+      this.execute('record', `${file} ${args.join(' ')}`, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err, evt);
         const application = evt.getHeader('Application');
         if ('record' !== application) {
@@ -1438,7 +1438,7 @@ class Endpoint extends EventEmitter {
 
     const __x = (cb: Endpoint.OperationCallback) => {
       if (!this.conf.memberId) return cb(new Error('Endpoint not in conference'));
-      this.api('conference', `${this.conf.name} ${op} ${this.conf.memberId} ${args}`, (err: any, evt: any) => {
+      this.api('conference', `${this.conf.name} ${op} ${this.conf.memberId} ${args}`, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err, evt);
         const body = evt.getBody();
         if (-1 !== ['mute', 'deaf', 'unmute', 'undeaf', 'kick', 'tmute', 'vmute', 'unvmute', 'vmute-snap', 'dtmf'].indexOf(op)) {
@@ -1496,7 +1496,7 @@ class Endpoint extends EventEmitter {
       const s1 = args.length ? args.join(',') + ' ' : '';
       const cmdArgs = `${this.conf.name} play ${file} ${s1} ${this.conf.memberId}`;
 
-      this.api('conference', cmdArgs, (err: any, evt: any) => {
+      this.api('conference', cmdArgs, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err);
         const body = evt.getBody();
         if (/Playing file.*to member/.test(body)) return cb(null, evt);
@@ -1524,7 +1524,7 @@ class Endpoint extends EventEmitter {
     const __x = (cb: Endpoint.OperationCallback) => {
       if (!this.conf.memberId) return cb(new Error('Endpoint not in conference'));
 
-      this.api('conference', `${this.conf.name} transfer ${confName} ${this.conf.memberId}`, (err: any, evt: any) => {
+      this.api('conference', `${this.conf.name} transfer ${confName} ${this.conf.memberId}`, (err: Error | null, evt: EslEvent) => {
         if (err) return cb(err, evt);
         const body = evt.getBody();
         if (/OK Member.*sent to conference/.test(body)) return cb(null, body);
@@ -1545,7 +1545,7 @@ class Endpoint extends EventEmitter {
     });
   }
 
-  private __onConferenceEvent(evt: any) {
+  private __onConferenceEvent(evt: EslEvent) {
     const subclass = evt.getHeader('Event-Subclass');
 
     if (subclass === 'conference::maintenance') {
@@ -1562,7 +1562,7 @@ class Endpoint extends EventEmitter {
     }
   }
 
-  private _onAddMember(evt: any) {
+  private _onAddMember(evt: EslEvent) {
     let memberId = -1;
     const confUuid = evt.getHeader('Conference-Unique-ID');
     try {
@@ -1576,19 +1576,19 @@ class Endpoint extends EventEmitter {
     }
   }
 
-  private _unhandled(evt: any) {
+  private _unhandled(evt: EslEvent) {
     debug(`unhandled Conference event for endpoint ${this.uuid} with action: ${evt.getHeader('Action')}`);
   }
 
-  private _onError(err: any) {
-    if (err.errno && (err.errno === 'ECONNRESET' || err.errno === 'EPIPE') && this.state === State.DISCONNECTED) {
+  private _onError(err: Error | null) {
+    if ((err as any).errno && ((err as any).errno === 'ECONNRESET' || (err as any).errno === 'EPIPE') && this.state === State.DISCONNECTED) {
       debug('ignoring connection reset error during teardown of connection');
       return;
     }
     console.error(`Endpoint#_onError: uuid: ${this.uuid}: ${err}`);
   }
 
-  private _onChannelCallState(evt: any) {
+  private _onChannelCallState(evt: EslEvent) {
     const channelCallState = evt.getHeader('Channel-Call-State');
 
     debug(`Endpoint#_onChannelCallState ${this.uuid}: Channel-Call-State: ${channelCallState}`);
@@ -1596,7 +1596,7 @@ class Endpoint extends EventEmitter {
       this.state = State.EARLY;
 
       if (this.secure) {
-        this.getChannelVariables(true, (err: any, obj: any) => {
+        this.getChannelVariables(true, (err: Error | null, obj: any) => {
           this.local.sdp = obj['variable_rtp_local_sdp_str'];
           this.local.mediaIp = obj['variable_local_media_ip'];
           this.local.mediaPort = obj['variable_local_media_port'];
@@ -1623,7 +1623,7 @@ class Endpoint extends EventEmitter {
     this.emit('channelCallState', { state: channelCallState });
   }
 
-  private _onDtmf(evt: any) {
+  private _onDtmf(evt: EslEvent) {
     if ('DTMF' === evt.getHeader('Event-Name')) {
       const args: any = {
         dtmf: evt.getHeader('DTMF-Digit'),
@@ -1636,13 +1636,13 @@ class Endpoint extends EventEmitter {
     }
   }
 
-  private _onToneDetect(evt: any) {
+  private _onToneDetect(evt: EslEvent) {
     let tone = evt.getHeader('Detected-Tone');
     if (!tone && evt.getHeader('Detected-Fax-Tone') === 'true') tone = 'fax';
     this.emit('tone', { tone });
   }
 
-  private _onPlaybackStart(evt: any) {
+  private _onPlaybackStart(evt: EslEvent) {
     if (evt.getHeader('Playback-File-Type') === 'tts_stream') {
       let header;
       const opts: any = {};
@@ -1657,7 +1657,7 @@ class Endpoint extends EventEmitter {
     }
   }
 
-  private _onPlaybackStop(evt: any) {
+  private _onPlaybackStop(evt: EslEvent) {
     if (evt.getHeader('Playback-File-Type') === 'tts_stream') {
       let header;
       const opts: any = {};
@@ -1681,11 +1681,11 @@ class Endpoint extends EventEmitter {
     }
   }
 
-  private _onHangup(evt: any) {
+  private _onHangup(evt: EslEvent) {
     // left intentionally empty matching original implementation
   }
 
-  private _onBye(evt: any) {
+  private _onBye(evt: EslEvent) {
     debug('Endpoint#_onBye: got BYE from media server');
     this.emit('destroy');
   }

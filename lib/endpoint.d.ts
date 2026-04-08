@@ -1,3 +1,4 @@
+import { EslConnection, Srf, SrfDialog } from "./types";
 import { EventEmitter } from 'events';
 import Conference from './conference';
 import MediaServer = require('./mediaserver');
@@ -68,6 +69,72 @@ declare namespace Endpoint {
     type OperationCallback = (err: Error | null, ...results: any[]) => void;
     type PlayOperationCallback = (err: Error | null, results?: any) => void;
 }
+declare namespace Endpoint {
+    interface Events {
+        'ready': () => void;
+        'dtmf': (args: {
+            dtmf: string;
+            duration: string;
+            source: string;
+            ssrc?: string;
+            timestamp?: string;
+        }) => void;
+        'tone': (args: {
+            tone: string;
+        }) => void;
+        'playback-start': (opts: any) => void;
+        'playback-stop': (opts: any) => void;
+        'channelCallState': (args: {
+            state: string;
+        }) => void;
+        'destroy': (args?: {
+            reason?: string;
+        }) => void;
+    }
+}
+declare interface Endpoint {
+    on<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+    once<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+    off<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    emit<U extends keyof Endpoint.Events>(event: U, ...args: Parameters<Endpoint.Events[U]>): boolean;
+    emit(event: string | symbol, ...args: any[]): boolean;
+}
+declare namespace Endpoint {
+    interface Events {
+        'ready': () => void;
+        'dtmf': (args: {
+            dtmf: string;
+            duration: string;
+            source: string;
+            ssrc?: string;
+            timestamp?: string;
+        }) => void;
+        'tone': (args: {
+            tone: string;
+        }) => void;
+        'playback-start': (opts: any) => void;
+        'playback-stop': (opts: any) => void;
+        'channelCallState': (args: {
+            state: string;
+        }) => void;
+        'destroy': (args?: {
+            reason?: string;
+        }) => void;
+    }
+}
+declare interface Endpoint {
+    on<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+    once<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+    off<U extends keyof Endpoint.Events>(event: U, listener: Endpoint.Events[U]): this;
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    emit<U extends keyof Endpoint.Events>(event: U, ...args: Parameters<Endpoint.Events[U]>): boolean;
+    emit(event: string | symbol, ...args: any[]): boolean;
+}
 declare class Endpoint extends EventEmitter {
     private _customEvents;
     private _conn;
@@ -98,17 +165,17 @@ declare class Endpoint extends EventEmitter {
     private _ready;
     private _joinCallback?;
     dtmfType?: string;
-    constructor(conn: any, dialog: any, ms: MediaServer, opts?: Endpoint.CreateOptions);
+    constructor(conn: EslConnection, dialog: SrfDialog, ms: MediaServer, opts?: Endpoint.CreateOptions);
     get mediaserver(): MediaServer;
     get ms(): MediaServer;
-    get srf(): any;
-    get conn(): any;
-    get dialog(): any;
+    get srf(): Srf;
+    get conn(): EslConnection;
+    get dialog(): SrfDialog;
     set dialog(dlg: any);
     get connected(): boolean;
     get muted(): boolean;
     filter(header: string, value: string): void;
-    request(opts: any): any;
+    request(opts: any): Promise<import("drachtio-srf/lib/response")> | undefined;
     private _setOrExport;
     set(param: string | object, value?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this;
     export(param: string | object, value?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this;
@@ -142,8 +209,8 @@ declare class Endpoint extends EventEmitter {
     toggleMute(callback?: Endpoint.OperationCallback): Promise<any> | this;
     api(command: string, args?: string | string[] | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this;
     execute(app: string, arg?: string | Endpoint.OperationCallback, callback?: Endpoint.OperationCallback): Promise<any> | this;
-    executeAsync(app: string, arg: string, callback?: any): any;
-    modify(newSdp: string): any;
+    executeAsync(app: string, arg: string, callback?: any): void | undefined;
+    modify(newSdp: string): Promise<any> | undefined;
     destroy(callback?: Endpoint.OperationCallback): Promise<any> | this;
     recordSession(...args: any[]): Promise<any> | this;
     private _endpointApps;

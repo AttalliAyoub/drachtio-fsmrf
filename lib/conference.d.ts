@@ -1,3 +1,4 @@
+import { EslEvent } from "./types";
 import { EventEmitter } from 'events';
 import Endpoint from './endpoint';
 import MediaServer from './mediaserver';
@@ -10,13 +11,77 @@ declare namespace Conference {
     interface CreateOptions {
         maxMembers?: number;
     }
-    type OperationCallback = (err: Error | null, response?: string | any) => void;
+    type OperationCallback = (err: Error | null, response?: string | number) => void;
     type PlaybackResults = {
         seconds: number;
         milliseconds: number;
         samples: number;
     };
     type PlaybackCallback = (err: Error | null, results?: PlaybackResults) => void;
+}
+declare namespace Conference {
+    interface Events {
+        'addMember': (evt: EslEvent) => void;
+        'delMember': (evt: EslEvent) => void;
+        'startTalking': (evt: EslEvent) => void;
+        'stopTalking': (evt: EslEvent) => void;
+        'muteDetect': (evt: EslEvent) => void;
+        'unmuteMember': (evt: EslEvent) => void;
+        'muteMember': (evt: EslEvent) => void;
+        'kickMember': (evt: EslEvent) => void;
+        'dtmfMember': (evt: EslEvent) => void;
+        'startRecording': (evt: EslEvent) => void;
+        'stopRecording': (evt: EslEvent) => void;
+        'playFile': (evt: EslEvent) => void;
+        'playFileMember': (evt: EslEvent) => void;
+        'playFileDone': (evt: EslEvent) => void;
+        'lock': (evt: EslEvent) => void;
+        'unlock': (evt: EslEvent) => void;
+        'transfer': (evt: EslEvent) => void;
+        'record': (evt: EslEvent) => void;
+    }
+}
+declare interface Conference {
+    on<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+    once<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+    off<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    emit<U extends keyof Conference.Events>(event: U, ...args: Parameters<Conference.Events[U]>): boolean;
+    emit(event: string | symbol, ...args: any[]): boolean;
+}
+declare namespace Conference {
+    interface Events {
+        'addMember': (evt: EslEvent) => void;
+        'delMember': (evt: EslEvent) => void;
+        'startTalking': (evt: EslEvent) => void;
+        'stopTalking': (evt: EslEvent) => void;
+        'muteDetect': (evt: EslEvent) => void;
+        'unmuteMember': (evt: EslEvent) => void;
+        'muteMember': (evt: EslEvent) => void;
+        'kickMember': (evt: EslEvent) => void;
+        'dtmfMember': (evt: EslEvent) => void;
+        'startRecording': (evt: EslEvent) => void;
+        'stopRecording': (evt: EslEvent) => void;
+        'playFile': (evt: EslEvent) => void;
+        'playFileMember': (evt: EslEvent) => void;
+        'playFileDone': (evt: EslEvent) => void;
+        'lock': (evt: EslEvent) => void;
+        'unlock': (evt: EslEvent) => void;
+        'transfer': (evt: EslEvent) => void;
+        'record': (evt: EslEvent) => void;
+    }
+}
+declare interface Conference {
+    on<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+    once<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+    off<U extends keyof Conference.Events>(event: U, listener: Conference.Events[U]): this;
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    emit<U extends keyof Conference.Events>(event: U, ...args: Parameters<Conference.Events[U]>): boolean;
+    emit(event: string | symbol, ...args: any[]): boolean;
 }
 declare class Conference extends EventEmitter {
     private _endpoint;

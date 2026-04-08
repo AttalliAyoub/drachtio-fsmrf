@@ -1,3 +1,4 @@
+import { EslConnection, Srf, SrfDialog, SrfRequest, SrfResponse } from "./types";
 import { EventEmitter } from 'events';
 import Endpoint from './endpoint';
 import Conference from './conference';
@@ -17,6 +18,7 @@ declare namespace MediaServer {
             vmute?: boolean;
             [key: string]: boolean | undefined;
         };
+        maxMembers?: number;
     }
     interface EndpointOptions {
         remoteSdp?: string;
@@ -34,14 +36,78 @@ declare namespace MediaServer {
     type ApiCallback = (response: string) => void;
     type ConnectCallerCallback = (err: Error | null, result?: {
         endpoint?: Endpoint;
-        dialog?: any;
+        dialog?: SrfDialog;
     }) => void;
+    interface PendingConnection {
+        dialog?: SrfDialog;
+        conn?: EslConnection;
+        connTimeout?: NodeJS.Timeout;
+        fn?: (...args: any[]) => void;
+        createTimeout?: NodeJS.Timeout;
+        callback?: (...args: any[]) => void;
+    }
+}
+declare namespace MediaServer {
+    interface Events {
+        'connect': () => void;
+        'ready': () => void;
+        'error': (err: Error) => void;
+        'end': () => void;
+        'channel::open': (args: {
+            uuid: string;
+            countOfConnections: number;
+            countOfChannels: number;
+        }) => void;
+        'channel::close': (args: {
+            uuid: string | undefined;
+            countOfConnections: number;
+            countOfChannels: number;
+        }) => void;
+    }
+}
+declare interface MediaServer {
+    on<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+    once<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+    off<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    emit<U extends keyof MediaServer.Events>(event: U, ...args: Parameters<MediaServer.Events[U]>): boolean;
+    emit(event: string | symbol, ...args: any[]): boolean;
+}
+declare namespace MediaServer {
+    interface Events {
+        'connect': () => void;
+        'ready': () => void;
+        'error': (err: Error) => void;
+        'end': () => void;
+        'channel::open': (args: {
+            uuid: string;
+            countOfConnections: number;
+            countOfChannels: number;
+        }) => void;
+        'channel::close': (args: {
+            uuid: string | undefined;
+            countOfConnections: number;
+            countOfChannels: number;
+        }) => void;
+    }
+}
+declare interface MediaServer {
+    on<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+    on(event: string | symbol, listener: (...args: any[]) => void): this;
+    once<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+    once(event: string | symbol, listener: (...args: any[]) => void): this;
+    off<U extends keyof MediaServer.Events>(event: U, listener: MediaServer.Events[U]): this;
+    off(event: string | symbol, listener: (...args: any[]) => void): this;
+    emit<U extends keyof MediaServer.Events>(event: U, ...args: Parameters<MediaServer.Events[U]>): boolean;
+    emit(event: string | symbol, ...args: any[]): boolean;
 }
 declare class MediaServer extends EventEmitter {
     private _conn;
     private _mrf;
     private _srf;
-    pendingConnections: Map<string, any>;
+    pendingConnections: Map<string, MediaServer.PendingConnection>;
     private _isMediaServerReady;
     maxSessions: number;
     currentSessions: number;
@@ -76,11 +142,11 @@ declare class MediaServer extends EventEmitter {
     v6address?: string;
     fsVersion?: string;
     cpuIdle?: number;
-    constructor(conn: any, mrf: Mrf, listenAddress: string, listenPort: number, advertisedAddress?: string, advertisedPort?: number, profile?: string);
+    constructor(conn: EslConnection, mrf: Mrf, listenAddress: string, listenPort: number, advertisedAddress?: string, advertisedPort?: number, profile?: string);
     get address(): string;
-    get conn(): any;
-    get srf(): any;
-    connected(): any;
+    get conn(): EslConnection;
+    get srf(): Srf;
+    connected(): boolean;
     disconnect(): void;
     destroy(): void;
     hasCapability(capability: string | string[]): boolean;
@@ -89,12 +155,12 @@ declare class MediaServer extends EventEmitter {
     createEndpoint(opts?: MediaServer.EndpointOptions): Promise<Endpoint>;
     createEndpoint(opts: MediaServer.EndpointOptions, callback: MediaServer.CreateEndpointCallback): this;
     createEndpoint(callback: MediaServer.CreateEndpointCallback): this;
-    connectCaller(req: any, res: any, opts?: MediaServer.EndpointOptions): Promise<{
+    connectCaller(req: SrfRequest, res: SrfResponse, opts?: MediaServer.EndpointOptions): Promise<{
         endpoint: Endpoint;
-        dialog: any;
+        dialog: SrfDialog;
     }>;
-    connectCaller(req: any, res: any, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
-    connectCaller(req: any, res: any, callback: MediaServer.ConnectCallerCallback): this;
+    connectCaller(req: SrfRequest, res: SrfResponse, opts: MediaServer.EndpointOptions, callback: MediaServer.ConnectCallerCallback): this;
+    connectCaller(req: SrfRequest, res: SrfResponse, callback: MediaServer.ConnectCallerCallback): this;
     createConference(name: string, opts?: MediaServer.ConferenceCreateOptions): Promise<Conference>;
     createConference(opts?: MediaServer.ConferenceCreateOptions): Promise<Conference>;
     createConference(name: string, opts: MediaServer.ConferenceCreateOptions, callback: MediaServer.CreateConferenceCallback): this;
