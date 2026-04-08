@@ -46,6 +46,7 @@ namespace MediaServer {
     srtp?: boolean;
     family?: 'ipv4' | 'ipv6';
     dtls?: boolean;
+		signal?: AbortSignal;
     [key: string]: unknown;
   }
 
@@ -344,14 +345,45 @@ class MediaServer extends EventEmitter {
     );
 
     const __x = async (cb: MediaServer.CreateEndpointCallback) => {
+      const uuid = generateUuid();
+      
+      const done = (err: Error | null, endpoint?: Endpoint) => {
+        if (opts.signal) {
+          opts.signal.removeEventListener('abort', onAbort);
+        }
+        cb(err, endpoint);
+      };
+
+      const onAbort = () => {
+        debug(`MediaServer#createEndpoint - aborted for uuid ${uuid}`);
+        const obj = this.pendingConnections.get(uuid);
+        if (obj) {
+          if (obj.connTimeout) clearTimeout(obj.connTimeout);
+          if (obj.dialog) obj.dialog.destroy();
+          this.pendingConnections.delete(uuid);
+        }
+        const err = new Error('AbortError');
+        err.name = 'AbortError';
+        done(err);
+      };
+
+      if (opts.signal) {
+        if (opts.signal.aborted) {
+          const err = new Error('AbortError');
+          err.name = 'AbortError';
+          return process.nextTick(() => done(err));
+        }
+        opts.signal.addEventListener('abort', onAbort);
+      }
+
       if (!this.connected()) {
         return process.nextTick(() => {
-          cb(new Error('too early: mediaserver is not connected'));
+          done(new Error('too early: mediaserver is not connected'));
         });
       }
       if (!this.sip[family as 'ipv4' | 'ipv6'][proto as 'dtls' | 'udp'].address) {
         return process.nextTick(() => {
-          cb(new Error('too early: mediaserver is not ready'));
+          done(new Error('too early: mediaserver is not ready'));
         });
       }
 
@@ -359,11 +391,10 @@ class MediaServer extends EventEmitter {
         this.pendingConnections.delete(uuid);
         dialog.destroy();
         debug(`MediaServer#createEndpoint - connection timeout for ${uuid}`);
-        cb(new Error('Connection timeout'));
+        done(new Error('Connection timeout'));
       };
 
       let uri: string;
-      const uuid = generateUuid();
       const hasDtls = opts.dtls && this.hasCapability([family, 'dtls']);
       if (hasDtls) {
         uri = `sips:drachtio@${this.sip[family as 'ipv4' | 'ipv6']['dtls'].address};transport=tls`;
@@ -378,7 +409,7 @@ class MediaServer extends EventEmitter {
         const endpoint = new Endpoint(conn, dialog, this, opts);
         endpoint.once('ready', () => {
           debug(`MediaServer#createEndpoint - returning endpoint for uuid ${uuid}`);
-          cb(null, endpoint);
+          done(null, endpoint);
         });
       };
 
@@ -392,12 +423,18 @@ class MediaServer extends EventEmitter {
           },
           localSdp: opts.remoteSdp
         });
+        
+        if (opts.signal && opts.signal.aborted) {
+          dlg.destroy();
+          return;
+        }
+        
         debug(`MediaServer#createEndpoint - createUAC produced dialog for ${uuid}`);
         const obj = this.pendingConnections.get(uuid); if (!obj) return;
         obj.dialog = dlg;
         if (obj.conn) {
           this.pendingConnections.delete(uuid);
-          produceEndpoint.bind(this)(obj.dialog, obj.conn);
+          produceEndpoint.bind(this)(obj.dialog as SrfDialog, obj.conn);
         } else {
           obj.connTimeout = setTimeout(timeoutFn.bind(this, dlg as SrfDialog, uuid), 4000);
           obj.fn = produceEndpoint.bind(this, obj.dialog as SrfDialog);
@@ -405,7 +442,7 @@ class MediaServer extends EventEmitter {
       } catch (err) {
         debug(`MediaServer#createEndpoint - createUAC returned error for ${uuid}`);
         this.pendingConnections.delete(uuid);
-        cb(err as Error);
+        done(err as Error);
       }
     };
 
